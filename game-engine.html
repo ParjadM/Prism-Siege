@@ -507,8 +507,6 @@
                             const newE = enemies[enemies.length - 1];
                             newE.id = inc.id; newE.maxHp = inc.maxHp;
                             newE.pos.x = inc.x; newE.pos.z = transZ; newE.state = inc.state;
-                            newE.mesh.position.copy(newE.pos);
-                            newE.container.position.copy(newE.pos);
                         }
                     }
                 }
@@ -559,6 +557,7 @@
             animate();
             if (MULTIPLAYER) {
                 document.getElementById('btn-speed').style.display = 'none';
+                document.getElementById('btn-start-wave').style.display = 'none';
                 document.getElementById('label-opponent').textContent = 'Opponent Base';
                 document.getElementById('label-opponent-money').textContent = 'Opponent';
                 document.getElementById('victory-msg').textContent = "You destroyed the opponent's base!";
