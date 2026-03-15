@@ -1225,12 +1225,16 @@
 
         // --- Game Logic ---
         function startNextWave(fromOpponent, syncWaveNumber) {
-            if (MULTIPLAYER && !fromOpponent) {
-                STATE.wave++;
-                sendPvPAction({ type: 'start_wave', wave: STATE.wave, lives: STATE.lives, money: STATE.money });
-            } else if (MULTIPLAYER && fromOpponent) {
-                if (syncWaveNumber != null && syncWaveNumber > STATE.wave) STATE.wave = syncWaveNumber;
-                else if (syncWaveNumber == null) STATE.wave++;
+            if (MULTIPLAYER) {
+                if (STATE.playerIdx === 0) { // Host handles official wave start
+                    STATE.wave++;
+                    sendPvPAction({ type: 'start_wave', wave: STATE.wave, lives: STATE.lives, money: STATE.money });
+                } else if (fromOpponent) { // Guest only starts wave if instructed
+                    if (syncWaveNumber != null && syncWaveNumber > STATE.wave) STATE.wave = syncWaveNumber;
+                    else if (syncWaveNumber == null) STATE.wave++;
+                } else {
+                    return; // Prevent guest from starting wave via local timer
+                }
             } else {
                 STATE.wave++;
             }
@@ -1238,7 +1242,7 @@
             STATE.isWaitingForWave = false;
             const baseAmount = 5 + Math.floor(STATE.wave * 2);
             const aiBonus = Math.round(((Math.floor(STATE.wave * 0.5) + 2) * DIFF_MOD.aiSpawnBonus));
-            STATE.aiToSpawn = baseAmount + aiBonus + (AI_UPGRADES.count.level * AI_UPGRADES.count.bonus);
+            STATE.aiToSpawn = baseAmount + (MULTIPLAYER ? 0 : aiBonus) + (AI_UPGRADES.count.level * AI_UPGRADES.count.bonus);
             STATE.playerToSpawn = baseAmount + (PLAYER_UPGRADES.count.level * PLAYER_UPGRADES.count.bonus);
             STATE.spawnTimer = 0;
             updateUI();
@@ -1360,31 +1364,32 @@
             const aiScale = Math.max(0, STATE.aiLives / CONFIG.startLives); aiBaseHpFg.scale.x = aiScale; aiBaseHpFg.position.x = -1.75 * (1 - aiScale);
 
             // Spawning Logic
-            if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                if (STATE.waveActive && (STATE.aiToSpawn > 0 || STATE.playerToSpawn > 0)) {
-                    STATE.spawnTimer -= dt;
-                    if (STATE.spawnTimer <= 0) {
-                        const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
-                        
-                        if (STATE.aiToSpawn > 0 && !MULTIPLAYER) {
-                            const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + OPPONENT_RESEARCH.speed;
-                            const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + OPPONENT_RESEARCH.hp;
-                            const aiLane = Math.floor(Math.random() * 3);
-                            spawnTroop(aiHp, aiSpeed, 'ai', aiLane, OPPONENT_RESEARCH.dmg);
-                            STATE.aiToSpawn--;
-                        }
-                        
-                        if (STATE.playerToSpawn > 0) {
-                            const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
-                            const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
-                            const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
-                            spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
-                            if (MULTIPLAYER) sendPvPAction({ type: 'spawn_troop', lane: pLane });
-                            STATE.playerToSpawn--;
-                            STATE.spawnIndex++;
-                        }
-                        STATE.spawnTimer = 0.9; 
+            if (STATE.waveActive && (STATE.aiToSpawn > 0 || STATE.playerToSpawn > 0)) {
+                STATE.spawnTimer -= dt;
+                if (STATE.spawnTimer <= 0) {
+                    const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
+                    
+                    if (STATE.aiToSpawn > 0 && !MULTIPLAYER) {
+                        const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + OPPONENT_RESEARCH.speed;
+                        const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + OPPONENT_RESEARCH.hp;
+                        const aiLane = Math.floor(Math.random() * 3);
+                        spawnTroop(aiHp, aiSpeed, 'ai', aiLane, OPPONENT_RESEARCH.dmg);
+                        STATE.aiToSpawn--;
                     }
+                    
+                    if (STATE.playerToSpawn > 0) {
+                        const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
+                        const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
+                        const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
+                        if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                            spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
+                        } else {
+                            sendPvPAction({ type: 'spawn_troop', lane: pLane });
+                        }
+                        STATE.playerToSpawn--;
+                        STATE.spawnIndex++;
+                    }
+                    STATE.spawnTimer = 0.9; 
                 }
             }
             if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
