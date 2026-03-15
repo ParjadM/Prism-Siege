@@ -483,6 +483,7 @@
                 if (a.wave !== undefined) STATE.wave = a.wave;
                 if (a.waveCountdown !== undefined) STATE.waveCountdown = a.waveCountdown;
                 if (a.waveActive !== undefined) STATE.waveActive = a.waveActive;
+                if (a.isWaitingForWave !== undefined) STATE.isWaitingForWave = a.isWaitingForWave;
                 
                 if (a.enemies) {
                     const incIds = a.enemies.map(e => e.id);
@@ -1321,10 +1322,10 @@
 
             if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
                 const t = performance.now() / 1000;
-                if (t - lastPvPSyncTime >= 0.1) { // Send sync 10 times a second
+                if (t - lastPvPSyncTime >= 0.2) { // Send sync 5 times a second to reduce Host lag
                     lastPvPSyncTime = t;
                     const enemiesPayload = enemies.map(e => ({ id: e.id, hp: e.hp, maxHp: e.maxHp, x: e.pos.x, z: e.pos.z, state: e.state, owner: e.owner, lane: e.lane }));
-                    sendPvPAction({ type: 'world_sync', lives: STATE.lives, money: STATE.money, wave: STATE.wave, aiLives: STATE.aiLives, aiMoney: STATE.aiMoney, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, enemies: enemiesPayload });
+                    sendPvPAction({ type: 'world_sync', lives: STATE.lives, money: STATE.money, wave: STATE.wave, aiLives: STATE.aiLives, aiMoney: STATE.aiMoney, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, isWaitingForWave: STATE.isWaitingForWave, enemies: enemiesPayload });
                 }
             }
 
