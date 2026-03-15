@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>3D Tower Defense - Player vs AI</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #3a3a4a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #game-container { width: 100vw; height: 100vh; height: 100dvh; display: block; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .top-bar {
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+            padding: clamp(6px, 1.5vw, 10px) clamp(10px, 2.5vw, 20px);
+            padding-top: max(clamp(6px, 1.5vw, 10px), env(safe-area-inset-top));
+            padding-left: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-left));
+            padding-right: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-right));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0));
+            color: white; pointer-events: auto;
+        }
+
+        .side-stats {
+            display: flex; gap: clamp(6px, 1.5vw, 10px);
+            flex-wrap: wrap; justify-content: center;
+            min-width: 0;
+        }
+
+        .stat-box {
+            background: rgba(30, 30, 45, 0.9); padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 12px); border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2); font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center;
+            justify-content: center; gap: 4px; min-width: min(100px, 22vw); font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 5px rgba(255,255,255,0.2);
+        }
+
+        .player-color { color: #ff66b2; border-color: rgba(255, 102, 178, 0.4); box-shadow: 0 0 10px rgba(255,102,178,0.2) inset;} 
+        .ai-color { color: #ff0000; border-color: rgba(255, 0, 0, 0.4); box-shadow: 0 0 10px rgba(255,0,0,0.2) inset;} 
+        .neutral-color { color: #fff; }
+
+        .floating-controls {
+            position: absolute;
+            bottom: max(100px, env(safe-area-inset-bottom) + 80px);
+            right: max(12px, env(safe-area-inset-right));
+            pointer-events: auto;
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+        }
+
+        .upgrade-panel {
+            position: absolute;
+            left: max(12px, env(safe-area-inset-left));
+            top: max(60px, env(safe-area-inset-top) + 50px);
+            background: rgba(30, 30, 45, 0.95); padding: clamp(8px, 1.5vw, 10px); border-radius: 8px;
+            border: 1px solid #ff66b2; color: white; display: flex; flex-direction: column;
+            gap: clamp(6px, 1.2vw, 8px); pointer-events: auto; box-shadow: 0 0 15px rgba(255, 102, 178, 0.3);
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+            width: min(200px, 52vw); max-width: 200px; z-index: 100;
+        }
+
+        .upgrade-panel.active { opacity: 1; visibility: visible; }
+
+        .upgrade-header {
+            margin: 0; color: #ff66b2; text-align: center; font-size: clamp(0.8rem, 2vw, 0.95rem);
+            border-bottom: 1px solid rgba(255, 102, 178, 0.4); padding-bottom: 6px;
+            text-shadow: 0 0 8px #ff66b2; cursor: grab; font-weight: bold; user-select: none;
+        }
+        .upgrade-header:active { cursor: grabbing; }
+        
+        .menu-view { display: flex; flex-direction: column; gap: 8px; }
+
+        /* Action Log */
+        #action-log {
+            position: absolute;
+            left: max(12px, env(safe-area-inset-left));
+            top: max(200px, 22vh);
+            width: min(250px, 65vw);
+            max-width: 250px;
+            display: flex; flex-direction: column; gap: 4px;
+            pointer-events: none; z-index: 90;
+        }
+
+        .log-entry {
+            background: rgba(20, 20, 30, 0.85); padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px); border-radius: 4px;
+            font-size: clamp(0.65rem, 1.8vw, 0.8rem); font-weight: bold; color: white;
+            text-shadow: 1px 1px 2px black; border-left: 3px solid;
+            animation: slideInFade 5s forwards;
+        }
+
+        @keyframes slideInFade {
+            0% { opacity: 0; transform: translateX(-15px); }
+            10% { opacity: 1; transform: translateX(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .bottom-bar {
+            padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2.5vw, 20px);
+            padding-bottom: max(clamp(8px, 1.5vw, 10px), env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+        }
+
+        .lane-toggles {
+            display: flex; flex-wrap: wrap; gap: clamp(6px, 1.5vw, 10px); align-items: center; justify-content: center; margin-bottom: 8px;
+        }
+
+        .btn {
+            background-color: #ff66b2; color: white; border: none;
+            padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 25px);
+            font-size: clamp(0.85rem, 2vw, 1rem); font-weight: bold; border-radius: 6px; cursor: pointer;
+            transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(255, 102, 178, 0.4); margin-top: 6px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .btn.secondary {
+            background-color: rgba(40,40,55,0.9); border: 1px solid #ff66b2;
+            padding: clamp(5px, 1vw, 6px) clamp(10px, 2vw, 12px);
+            font-size: clamp(0.7rem, 1.8vw, 0.8rem); box-shadow: 0 0 8px rgba(255,102,178,0.2); margin-top: 0;
+            color: #eee;
+        }
+
+        .btn.secondary.active {
+            background-color: rgba(255, 102, 178, 0.5);
+            color: white;
+            box-shadow: 0 0 10px rgba(255, 102, 178, 0.5);
+        }
+
+        .btn:hover { background-color: #ff4d94; transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 102, 178, 0.6); }
+        .btn.secondary:hover { background-color: rgba(255,102,178,0.3); }
+        .btn.secondary.active:hover { background-color: rgba(255, 102, 178, 0.7); }
+        .btn:active { transform: scale(0.95); }
+        .btn:disabled { background-color: #555; color: #aaa; border-color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        .instructions {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+            text-align: center; margin-bottom: 6px; font-weight: 500;
+            padding: 0 8px;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+        }
+        .overlay.active { opacity: 1; pointer-events: auto; }
+        .overlay h1 { font-size: clamp(2rem, 8vw, 4rem); margin-bottom: 10px; text-transform: uppercase; letter-spacing: clamp(2px, 1vw, 4px); padding: 0 12px; text-align: center; }
+        .overlay p { font-size: clamp(0.9rem, 2.5vw, 1.2rem); margin-bottom: 25px; color: #eee; padding: 0 16px; text-align: center; }
+
+        @media (max-width: 600px) {
+            .top-bar .stat-box.neutral-color { width: 100% !important; order: -1; }
+            #timer-container { display: block; margin-left: 0; margin-top: 2px; }
+            #research-panel { width: min(280px, 90vw) !important; left: 50%; transform: translate(-50%, -50%); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div id="fps-display" style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.85rem; font-variant-numeric: tabular-nums; pointer-events: none;">FPS: 60</div>
+        <div class="top-bar">
+            <div class="side-stats">
+                <div class="stat-box ai-color"><span id="label-opponent">AI Base</span>: <span id="ui-ai-lives">10</span> ❤️</div>
+                <div class="stat-box ai-color"><span id="label-opponent-money">AI</span> 💰: <span id="ui-ai-money">150</span></div>
+            </div>
+            
+            <div class="stat-box neutral-color" style="border-color: #ffd700; width: 200px; box-shadow: 0 0 10px rgba(255,215,0,0.3) inset;">
+                🌊 Wave: <span id="ui-wave">1</span>
+                <span id="timer-container" style="margin-left: 10px; font-weight: normal; font-size: 0.85rem;">
+                    | Next in: <span id="ui-timer" style="color: #ffcc00; font-weight: bold;">30</span>s
+                </span>
+            </div>
+
+            <div class="side-stats" style="flex-direction: row-reverse;">
+                <div class="stat-box player-color">Your Base: <span id="ui-lives">10</span> ❤️</div>
+                <div class="stat-box player-color">Your 💰: <span id="ui-money">150</span></div>
+            </div>
+        </div>
+        
+        <div id="upgrade-menu" class="upgrade-panel">
+            <div id="upgrade-header" class="upgrade-header">☰ Upgrade Hub</div>
+            
+            <div id="menu-main" class="menu-view">
+                <button class="btn secondary" onclick="switchMenu('troops')">Troop Offense ⚔️</button>
+                <button class="btn secondary" onclick="switchMenu('towers')">Tower Defense 🛡️</button>
+                <button class="btn secondary" onclick="switchMenu('buildings')">Buildings 🏗️</button>
+            </div>
+
+            <div id="menu-troops" class="menu-view" style="display: none;">
+                <button id="btn-upg-hp" class="btn secondary" onclick="buyUpgrade('hp', 'troop')"></button>
+                <button id="btn-upg-speed" class="btn secondary" onclick="buyUpgrade('speed', 'troop')"></button>
+                <button id="btn-upg-count" class="btn secondary" onclick="buyUpgrade('count', 'troop')"></button>
+                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+            </div>
+
+            <div id="menu-towers" class="menu-view" style="display: none;">
+                <button id="btn-upg-dmg" class="btn secondary" onclick="buyUpgrade('dmg', 'tower')"></button>
+                <button id="btn-upg-range" class="btn secondary" onclick="buyUpgrade('range', 'tower')"></button>
+                <button id="btn-upg-fireRate" class="btn secondary" onclick="buyUpgrade('fireRate', 'tower')"></button>
+                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+            </div>
+
+            <div id="menu-buildings" class="menu-view" style="display: none;">
+                <button class="btn secondary" onclick="setBuildMode('research')">Research Lab 🔬 (100💰)</button>
+                <button class="btn secondary" onclick="setBuildMode('tower')">Tower (50💰)</button>
+                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+            </div>
+        </div>
+
+        <div id="research-panel" class="upgrade-panel" style="left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s;">
+            <div class="upgrade-header" style="cursor: default;">🔬 Research Lab</div>
+            <div class="menu-view">
+                <button id="research-troop1" class="btn secondary" onclick="buyResearch('heavy')">Heavy Armor (+80 HP) — 75💰</button>
+                <button id="research-troop2" class="btn secondary" onclick="buyResearch('swift')">Swift Strike (+0.4 Speed) — 75💰</button>
+                <button id="research-troop3" class="btn secondary" onclick="buyResearch('berserker')">Berserker (+15 Dmg) — 75💰</button>
+                <button class="btn secondary" style="background: #555;" onclick="closeResearchPanel()">Close</button>
+            </div>
+        </div>
+
+        <div id="action-log"></div>
+
+        <div class="floating-controls">
+            <button id="btn-speed" class="btn secondary">⏩ Speed: 1x</button>
+            <button id="btn-reset-view" class="btn secondary">🎥 Center Camera</button>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="lane-toggles">
+                <span style="color:white; font-size: 0.9rem; margin-right: 5px; font-weight: bold;">Deploy Lanes:</span>
+                <button id="lane-btn-0" class="btn secondary active" onclick="toggleLane(0)">Left</button>
+                <button id="lane-btn-1" class="btn secondary active" onclick="toggleLane(1)">Mid</button>
+                <button id="lane-btn-2" class="btn secondary active" onclick="toggleLane(2)">Right</button>
+            </div>
+            <div class="instructions">
+                Buildings → select Tower or Research, then click green zone. Right-click to deselect.
+            </div>
+            <button id="btn-start-wave" class="btn">Deploy Now (Skip Timer)</button>
+        </div>
+    </div>
+
+    <div id="game-over" class="overlay">
+        <h1 class="ai-color" style="text-shadow: 0 0 20px #ff0000;">DEFEAT</h1>
+        <p id="defeat-msg">The Red forces destroyed your base.</p>
+        <button class="btn" onclick="location.reload()">Restart Game</button>
+    </div>
+
+    <div id="victory" class="overlay">
+        <h1 class="player-color" style="text-shadow: 0 0 20px #ff66b2;">VICTORY</h1>
+        <p id="victory-msg">You destroyed the opponent's base!</p>
+        <button class="btn" onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- Game Mode (vs AI or PvP) ---
+        const MULTIPLAYER = (() => {
+            const p = new URLSearchParams(window.location.search).get('mode');
+            return (p || '').toLowerCase() === 'pvp';
+        })();
+        const AI_DIFFICULTY = MULTIPLAYER ? 'medium' : (() => {
+            const p = new URLSearchParams(window.location.search).get('ai');
+            const s = localStorage.getItem('prismSiege_aiDifficulty');
+            return (p || s || 'medium').toLowerCase();
+        })();
+        const DIFF = {
+            easy:   { aiMoneyMult: 0.6, aiCostMult: 1.5, aiSpawnBonus: 0.3, decisionInterval: [2.5, 1.5], aggressionMult: 0.6, waveMoneyMult: 0.7 },
+            medium: { aiMoneyMult: 1.0, aiCostMult: 1.0, aiSpawnBonus: 1.0, decisionInterval: [1.5, 1.0], aggressionMult: 1.0, waveMoneyMult: 1.0 },
+            hard:   { aiMoneyMult: 1.4, aiCostMult: 0.7, aiSpawnBonus: 1.6, decisionInterval: [0.8, 0.5], aggressionMult: 1.5, waveMoneyMult: 1.3 }
+        };
+        const DIFF_MOD = DIFF[AI_DIFFICULTY] || DIFF.medium;
+
+        // --- Game Configuration & State ---
+        const CONFIG = {
+            gridW: 21, gridH: 28, tileSize: 1.2, 
+            startMoney: 150, aiStartMoney: Math.round(200 * DIFF_MOD.aiMoneyMult), towerCost: 50, researchCost: 100, startLives: 10,
+            defaultCameraPos: new THREE.Vector3(0, 38, 32),
+            defaultCameraTarget: new THREE.Vector3(0, 0, 0),
+            // Optional: set to a texture image URL (e.g. "ground.jpg") to use as tiled ground texture
+            groundTextureUrl: ''
+        };
+
+        const STATE = {
+            buildMode: null,
+            gameSpeed: 1,
+            money: CONFIG.startMoney, lives: CONFIG.startLives,
+            aiMoney: CONFIG.aiStartMoney, aiLives: CONFIG.startLives,
+            wave: 0, waveActive: false, aiToSpawn: 0, playerToSpawn: 0,
+            spawnTimer: 0, isGameOver: false, waveCountdown: 30, isWaitingForWave: true,
+            aiDecisionTimer: 2.0, activeLanes: [0, 1, 2], spawnIndex: 0,
+            selectedResearch: null,
+            researchBonusHp: 0, researchBonusSpeed: 0, researchBonusDmg: 0,
+            pvpReady: !MULTIPLAYER,
+            ws: null,
+            playerIdx: -1
+        };
+
+        const PLAYER_UPGRADES = {
+            hp: { level: 0, cost: 100, bonus: 50, name: "Health" },
+            speed: { level: 0, cost: 150, bonus: 0.25, name: "Speed" },
+            count: { level: 0, cost: 200, bonus: 1, name: "Troop Count" }
+        };
+        const PLAYER_TOWER_UPGRADES = {
+            dmg: { level: 0, cost: 100, bonus: 10, name: "Damage" },
+            range: { level: 0, cost: 150, bonus: 0.5, name: "Range" },
+            fireRate: { level: 0, cost: 200, bonus: 0.05, name: "Fire Rate" } 
+        };
+
+        const AI_UPGRADES = JSON.parse(JSON.stringify(PLAYER_UPGRADES));
+        const AI_TOWER_UPGRADES = JSON.parse(JSON.stringify(PLAYER_TOWER_UPGRADES));
+        const baseAiCosts = { hp: 80, speed: 120, count: 160, dmg: 80, range: 120, fireRate: 120 };
+        AI_UPGRADES.hp.cost = Math.round(baseAiCosts.hp * DIFF_MOD.aiCostMult);
+        AI_UPGRADES.speed.cost = Math.round(baseAiCosts.speed * DIFF_MOD.aiCostMult);
+        AI_UPGRADES.count.cost = Math.round(baseAiCosts.count * DIFF_MOD.aiCostMult);
+        AI_TOWER_UPGRADES.dmg.cost = Math.round(baseAiCosts.dmg * DIFF_MOD.aiCostMult);
+        AI_TOWER_UPGRADES.range.cost = Math.round(baseAiCosts.range * DIFF_MOD.aiCostMult);
+        AI_TOWER_UPGRADES.fireRate.cost = Math.round(baseAiCosts.fireRate * DIFF_MOD.aiCostMult);
+
+        const tiles = [], towers = [], researchBuildings = [], researchClickables = [], towerHoverMeshes = [], enemies = [], projectiles = [], particles = [];
+        const RESEARCH_TROOPS = [
+            { id: 'heavy', name: 'Heavy Armor', cost: 75, bonusHp: 80, bonusSpeed: 0, bonusDmg: 0 },
+            { id: 'swift', name: 'Swift Strike', cost: 75, bonusHp: 0, bonusSpeed: 0.4, bonusDmg: 0 },
+            { id: 'berserker', name: 'Berserker', cost: 75, bonusHp: 0, bonusSpeed: 0, bonusDmg: 15 }
+        ];
+        const STATE_RESEARCHED = { heavy: false, swift: false, berserker: false };
+        const aiWaypoints = [[], [], []]; const playerWaypoints = [[], [], []]; 
+        const aiPathCells = []; const playerPathCells = []; let grid = []; 
+
+        let scene, camera, renderer, clock, controls, hoverMesh, rangeCircleMesh, buildPreviewTower, buildPreviewResearch;
+        const mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
+        let lastTimerSec = 30;
+        let fpsFrameCount = 0, fpsLastTime = performance.now(), fpsValue = 60;
+
+        let playerBaseGroup, aiBaseGroup, playerBaseHpFg, aiBaseHpFg;
+
+        // --- PvP WebSocket ---
+        function getWsUrl() {
+            const cfg = window.PRISM_SIEGE_WS_URL;
+            if (cfg) return cfg;
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = location.host || 'localhost:8080';
+            return proto + '//' + host.replace(/\/$/, '') + '/ws';
+        }
+        function sendPvPAction(action) {
+            if (STATE.ws && STATE.ws.readyState === 1) {
+                try { STATE.ws.send(JSON.stringify({ cmd: 'action', action })); } catch (e) {}
+            }
+        }
+        const OPPONENT_RESEARCH = { hp: 0, speed: 0, dmg: 0 };
+        const OPPONENT_RESEARCHED = {};
+        function applyOpponentAction(action) {
+            const a = action.action || action;
+            if (a.from_player === STATE.playerIdx || STATE.playerIdx < 0) return;
+            const r = a.r, c = a.c, type = a.type, category = a.category, id = a.id, upgradeType = a.upgradeType;
+            if (type === 'build_tower') {
+                const rM = 27 - (r !== undefined ? r : 0);
+                const cM = c !== undefined ? c : 0;
+                if (grid[rM] && grid[rM][cM] === 0) { buildTower(rM, cM, 'ai'); logAction('Opponent built a tower!', '#ff0000'); updateUI(); }
+            } else if (type === 'build_research') {
+                const rM = 27 - (r !== undefined ? r : 0);
+                const cM = c !== undefined ? c : 0;
+                if (grid[rM] && grid[rM][cM] === 0) { buildResearch(rM, cM); logAction('Opponent built Research Lab!', '#ff0000'); updateUI(); }
+            } else if (type === 'buy_upgrade' && category && upgradeType) {
+                const tree = category === 'troop' ? AI_UPGRADES : AI_TOWER_UPGRADES;
+                const upg = tree[upgradeType];
+                if (upg) { upg.level++; upg.cost = Math.floor(upg.cost * 1.5); logAction('Opponent upgraded ' + upg.name + '!', '#ff0000'); updateUI(); }
+            } else if (type === 'buy_research' && id) {
+                const rT = RESEARCH_TROOPS.find(x => x.id === id);
+                if (rT && !OPPONENT_RESEARCHED[id]) { OPPONENT_RESEARCHED[id] = true; OPPONENT_RESEARCH.hp += rT.bonusHp || 0; OPPONENT_RESEARCH.speed += rT.bonusSpeed || 0; OPPONENT_RESEARCH.dmg += rT.bonusDmg || 0; logAction('Opponent researched ' + rT.name + '!', '#ff0000'); updateUI(); }
+            } else if (type === 'start_wave') {
+                startNextWave(true);
+            }
+        }
+
+        function connectPvP(roomId, playerIdxParam) {
+            const url = getWsUrl();
+            const ws = new WebSocket(url);
+            STATE.ws = ws;
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ cmd: 'rejoin', room_id: roomId, player_idx: parseInt(playerIdxParam, 10) }));
+            };
+            ws.onclose = () => { logAction('Disconnected from server.', '#ff6600'); };
+            ws.onmessage = (e) => {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.event === 'joined' && msg.ready) {
+                        STATE.playerIdx = msg.player_idx;
+                        STATE.pvpReady = true;
+                        logAction('Match Started! PvP.', '#ffffff');
+                    } else if (msg.event === 'action') applyOpponentAction(msg);
+                    else if (msg.event === 'opponent_left') logAction('Opponent disconnected.', '#ff6600');
+                    else if (msg.event === 'opponent_reconnected') logAction('Opponent reconnected.', '#66ff66');
+                    else if (msg.event === 'error') logAction(msg.msg || 'Error', '#ff0000');
+                } catch (err) {}
+            };
+        }
+
+        // --- Initialization ---
+        window.onload = function() {
+            initThreeJS();
+            createMap();
+            createBases();
+            setupInteraction();
+            updateUI();
+            clock = new THREE.Clock();
+            animate();
+            if (MULTIPLAYER) {
+                document.getElementById('label-opponent').textContent = 'Opponent Base';
+                document.getElementById('label-opponent-money').textContent = 'Opponent';
+                document.getElementById('victory-msg').textContent = "You destroyed the opponent's base!";
+                document.getElementById('defeat-msg').textContent = "Your opponent destroyed your base.";
+                const params = new URLSearchParams(window.location.search);
+                const roomId = params.get('room_id');
+                const playerIdxParam = params.get('player_idx');
+                if (roomId && (playerIdxParam === '0' || playerIdxParam === '1')) {
+                    connectPvP(roomId, playerIdxParam);
+                } else {
+                    window.location.replace('lobby.html');
+                    return;
+                }
+            } else {
+                logAction(`Match Started! AI: ${AI_DIFFICULTY}. Build defenses or upgrade troops.`, "#ffffff");
+            }
+        };
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x3a3a4a);
+            scene.fog = new THREE.FogExp2(0x3a3a4a, 0.01); 
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.copy(CONFIG.defaultCameraPos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.copy(CONFIG.defaultCameraTarget);
+            controls.enableDamping = true; controls.dampingFactor = 0.05; controls.maxPolarAngle = Math.PI / 2.2; 
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); scene.add(ambientLight);
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666677, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfff0dd, 1.2);
+            dirLight.position.set(15, 35, -15);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
+            dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
+            dirLight.shadow.mapSize.width = 4096; dirLight.shadow.mapSize.height = 4096;
+            dirLight.shadow.bias = -0.0002; dirLight.shadow.normalBias = 0.02; 
+            scene.add(dirLight);
+
+            hoverMesh = null;
+
+            const rangeRingGeo = new THREE.RingGeometry(4.3, 4.7, 96);
+            const rangeRingMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.65, side: THREE.DoubleSide });
+            rangeCircleMesh = new THREE.Mesh(rangeRingGeo, rangeRingMat);
+            rangeCircleMesh.rotation.x = -Math.PI / 2; rangeCircleMesh.position.y = 0.06; rangeCircleMesh.visible = false;
+            scene.add(rangeCircleMesh);
+
+            // Ghost previews for build mode (follow mouse over grid)
+            const ghostMat = (color) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false });
+            buildPreviewTower = new THREE.Group();
+            const tBase = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.tileSize * 0.7, 0.4, CONFIG.tileSize * 0.7), ghostMat(0x00aa44));
+            tBase.position.y = 0.2;
+            const tHead = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 0.4, 12), ghostMat(0xff66b2));
+            tHead.position.y = 0.6;
+            const tBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8), ghostMat(0x333333));
+            tBarrel.rotation.x = Math.PI / 2; tBarrel.position.set(0, 0.6, 0.4);
+            buildPreviewTower.add(tBase, tHead, tBarrel); buildPreviewTower.visible = false; scene.add(buildPreviewTower);
+
+            buildPreviewResearch = new THREE.Group();
+            const rBody = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.tileSize * 0.6, 0.8, CONFIG.tileSize * 0.6), ghostMat(0x3366aa));
+            rBody.position.y = 0.4;
+            const rDome = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), ghostMat(0x66aaff));
+            rDome.rotation.x = Math.PI / 2; rDome.position.y = 0.75;
+            buildPreviewResearch.add(rBody, rDome); buildPreviewResearch.visible = false; scene.add(buildPreviewResearch);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function getWorldPos(r, c) {
+            return new THREE.Vector3((c - CONFIG.gridW/2 + 0.5) * CONFIG.tileSize, 0, (r - CONFIG.gridH/2 + 0.5) * CONFIG.tileSize);
+        }
+
+        // --- PROCEDURAL TEXTURE GENERATION ---
+        
+        // 1. Color Map Generator (Visual look) - high-res for quality
+        function createTileTexture(baseColor, edgeColor, noiseColor) {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = baseColor; ctx.fillRect(0, 0, size, size);
+            for (let i = 0; i < 800; i++) {
+                ctx.fillStyle = noiseColor; ctx.globalAlpha = Math.random() * 0.25;
+                ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = edgeColor; ctx.lineWidth = 5; ctx.strokeRect(4, 4, size - 8, size - 8);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 16; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+            return tex;
+        }
+
+        // 2. Bump Map Generator (depth / grit)
+        function createBumpTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, size, size);
+            for (let i = 0; i < 6000; i++) {
+                const intensity = Math.floor(Math.random() * 255);
+                ctx.fillStyle = `rgb(${intensity},${intensity},${intensity})`;
+                ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+            }
+            ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.strokeRect(4, 4, size - 8, size - 8);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 16;
+            return tex;
+        }
+
+        // 3. Tech Grid Texture (Towers and Bases) - higher res
+        function createTechTexture() {
+            const dim = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = dim; canvas.height = dim; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#444444'; ctx.fillRect(0, 0, dim, dim);
+            ctx.strokeStyle = '#222222'; ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, dim, dim);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dim, dim); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(dim, 0); ctx.lineTo(0, dim); ctx.stroke();
+            for (let i = 1; i < 4; i++) {
+                const o = (dim / 4) * i;
+                ctx.moveTo(o, 0); ctx.lineTo(o, dim); ctx.moveTo(0, o); ctx.lineTo(dim, o);
+            }
+            ctx.stroke();
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 2); tex.anisotropy = 16;
+            return tex;
+        }
+
+        function extractPath(corners, waypointsArr, pathCellsArr) {
+            waypointsArr.push(getWorldPos(corners[0].r, corners[0].c));
+            for (let i = 0; i < corners.length - 1; i++) {
+                let curr = corners[i], next = corners[i+1];
+                let minR = Math.min(curr.r, next.r), maxR = Math.max(curr.r, next.r);
+                let minC = Math.min(curr.c, next.c), maxC = Math.max(curr.c, next.c);
+
+                for (let r = minR; r <= maxR; r++) {
+                    for (let c = minC; c <= maxC; c++) { 
+                        grid[r][c] = 1; if (pathCellsArr) pathCellsArr.push({r, c}); 
+                    }
+                }
+                waypointsArr.push(getWorldPos(next.r, next.c));
+            }
+        }
+
+        function createMap() {
+            grid = Array(CONFIG.gridH).fill(null).map(() => Array(CONFIG.gridW).fill(0));
+            const baseCol = 10; 
+            
+            const aiCornersL = [{r: 0, c: baseCol}, {r: 3, c: baseCol}, {r: 3, c: 3}, {r: 24, c: 3}, {r: 24, c: baseCol}, {r: 27, c: baseCol}];
+            const aiCornersM = [{r: 0, c: baseCol}, {r: 27, c: baseCol}];
+            const aiCornersR = [{r: 0, c: baseCol}, {r: 3, c: baseCol}, {r: 3, c: 17}, {r: 24, c: 17}, {r: 24, c: baseCol}, {r: 27, c: baseCol}];
+
+            const pCornersL = [{r: 27, c: baseCol}, {r: 24, c: baseCol}, {r: 24, c: 3}, {r: 3, c: 3}, {r: 3, c: baseCol}, {r: 0, c: baseCol}];
+            const pCornersM = [{r: 27, c: baseCol}, {r: 0, c: baseCol}];
+            const pCornersR = [{r: 27, c: baseCol}, {r: 24, c: baseCol}, {r: 24, c: 17}, {r: 3, c: 17}, {r: 3, c: baseCol}, {r: 0, c: baseCol}];
+
+            extractPath(aiCornersL, aiWaypoints[0], aiPathCells);
+            extractPath(aiCornersM, aiWaypoints[1], aiPathCells);
+            extractPath(aiCornersR, aiWaypoints[2], aiPathCells);
+            
+            extractPath(pCornersL, playerWaypoints[0], playerPathCells);
+            extractPath(pCornersM, playerWaypoints[1], playerPathCells);
+            extractPath(pCornersR, playerWaypoints[2], playerPathCells);
+
+            const tileGeo = new THREE.BoxGeometry(CONFIG.tileSize - 0.05, 0.2, CONFIG.tileSize - 0.05);
+            
+            // Generate Textures
+            const pathTex = createTileTexture('#4a4a5a', '#2a2a3a', '#ffffff');
+            const playerTex = createTileTexture('#2a3b2a', '#1a2b1a', '#000000');
+            const aiTex = createTileTexture('#3b2a2a', '#2b1a1a', '#000000');
+            const commonBump = createBumpTexture();
+            const matOpts = (tex, bump, roughness, metalness) => {
+                const o = { map: tex, roughness, metalness: metalness || 0.1 };
+                if (bump) { o.bumpMap = bump; o.bumpScale = 0.08; }
+                return o;
+            };
+            const pathMat = new THREE.MeshStandardMaterial(matOpts(pathTex, commonBump, 0.85, 0.15)); 
+            const playerZoneMat = new THREE.MeshStandardMaterial(matOpts(playerTex, commonBump, 0.95, 0.05)); 
+            const aiZoneMat = new THREE.MeshStandardMaterial(matOpts(aiTex, commonBump, 0.95, 0.05)); 
+
+            // Optional: load an image texture for the ground (tiled)
+            if (CONFIG.groundTextureUrl) {
+                const loader = new THREE.TextureLoader();
+                loader.load(CONFIG.groundTextureUrl, function(tex) {
+                    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                    tex.repeat.set(8, 8);
+                    pathMat.map = tex;
+                    playerZoneMat.map = tex;
+                    aiZoneMat.map = tex;
+                });
+            }
+            
+            const glowGeo = new THREE.PlaneGeometry(CONFIG.tileSize, CONFIG.tileSize);
+            const pGlowMat = new THREE.MeshBasicMaterial({ color: 0xff66b2, transparent: true, opacity: 0.15 });
+            const aGlowMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.15 });
+
+            const halfH = CONFIG.gridH / 2;
+            for (let r = 0; r < CONFIG.gridH; r++) {
+                for (let c = 0; c < CONFIG.gridW; c++) {
+                    const isPath = grid[r][c] === 1; const isPlayerZone = r >= halfH; 
+                    const mesh = new THREE.Mesh(tileGeo, isPath ? pathMat : (isPlayerZone ? playerZoneMat : aiZoneMat));
+                    mesh.position.copy(getWorldPos(r, c)); mesh.position.y = -0.1; 
+                    mesh.receiveShadow = true;
+                    mesh.userData = { r, c, isBuildable: !isPath, isPlayerZone };
+                    scene.add(mesh); tiles.push(mesh);
+
+                    if (isPath) {
+                        const isPlayerPath = playerPathCells.some(cell => cell.r === r && cell.c === c);
+                        const isAiPath = aiPathCells.some(cell => cell.r === r && cell.c === c);
+                        if (isPlayerPath || isAiPath) {
+                            const glow = new THREE.Mesh(glowGeo, isPlayerPath ? pGlowMat : aGlowMat);
+                            glow.rotation.x = -Math.PI/2; glow.position.copy(mesh.position); glow.position.y = 0.01;
+                            scene.add(glow);
+                        }
+                    }
+                }
+            }
+        }
+
+        function createBases() {
+            const techMap = createTechTexture();
+
+            const buildBaseModel = (colorHex, emissiveHex) => {
+                const group = new THREE.Group();
+                // Apply the Tech Pattern to the bases
+                const bodyMat = new THREE.MeshStandardMaterial({ map: techMap, color: 0x555555, metalness: 0.7, roughness: 0.3 });
+                const body = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.5, 2.5), bodyMat);
+                body.position.y = 0.75; body.castShadow = true; body.receiveShadow = true; group.add(body);
+
+                const roofMat = new THREE.MeshStandardMaterial({ color: colorHex, emissive: emissiveHex, emissiveIntensity: 0.6, metalness: 0.2, roughness: 0.5 });
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.4, 2.1), roofMat);
+                roof.position.y = 1.7; roof.castShadow = true; roof.receiveShadow = true; group.add(roof);
+
+                const gate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.0, 2.6), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+                gate.position.y = 0.5; group.add(gate);
+
+                const hpGroup = new THREE.Group();
+                const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 0.4), new THREE.MeshBasicMaterial({color: 0x000000}));
+                const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 0.4), new THREE.MeshBasicMaterial({color: emissiveHex}));
+                hpFg.position.z = 0.02; hpGroup.add(hpBg, hpFg); hpGroup.position.y = 3.2; group.add(hpGroup);
+
+                const light = new THREE.PointLight(emissiveHex, 1, 10); light.position.y = 2.5; group.add(light);
+                return { group, hpGroup, hpFg };
+            };
+            
+            const pBaseData = buildBaseModel(0xaa3377, 0xff66b2);
+            playerBaseGroup = pBaseData.group; playerBaseHpGroup = pBaseData.hpGroup; playerBaseHpFg = pBaseData.hpFg;
+            playerBaseGroup.position.copy(getWorldPos(27, 10)); scene.add(playerBaseGroup);
+
+            const aiBaseData = buildBaseModel(0xaa0000, 0xff0000);
+            aiBaseGroup = aiBaseData.group; aiBaseHpGroup = aiBaseData.hpGroup; aiBaseHpFg = aiBaseData.hpFg;
+            aiBaseGroup.position.copy(getWorldPos(0, 10)); scene.add(aiBaseGroup);
+        }
+
+        function createExplosion(pos, colorHex) {
+            const count = 10, geo = new THREE.BoxGeometry(0.15, 0.15, 0.15), mat = new THREE.MeshBasicMaterial({ color: colorHex });
+            for(let i=0; i<count; i++) {
+                const mesh = new THREE.Mesh(geo, mat); mesh.position.copy(pos);
+                const vx = (Math.random() - 0.5) * 4, vy = Math.random() * 4 + 2, vz = (Math.random() - 0.5) * 4;
+                scene.add(mesh); particles.push({ mesh, velocity: new THREE.Vector3(vx, vy, vz), life: 1.0 });
+            }
+        }
+
+        // --- Logging System ---
+        function logAction(message, colorHex) {
+            const logContainer = document.getElementById('action-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.borderColor = colorHex;
+            entry.innerHTML = `<span style="color: ${colorHex}">[Log]</span> ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            setTimeout(() => { if (entry.parentNode) entry.parentNode.removeChild(entry); }, 5000);
+        }
+
+        // --- UI & Upgrades & Lane Toggle ---
+        function toggleLane(laneIdx) {
+            const arrIdx = STATE.activeLanes.indexOf(laneIdx);
+            const btn = document.getElementById(`lane-btn-${laneIdx}`);
+            if (arrIdx > -1) {
+                if (STATE.activeLanes.length > 1) {
+                    STATE.activeLanes.splice(arrIdx, 1); btn.classList.remove('active');
+                }
+            } else {
+                STATE.activeLanes.push(laneIdx); STATE.activeLanes.sort(); btn.classList.add('active');
+            }
+        }
+
+        function switchMenu(view) {
+            document.getElementById('menu-main').style.display = 'none';
+            document.getElementById('menu-troops').style.display = 'none';
+            document.getElementById('menu-towers').style.display = 'none';
+            document.getElementById('menu-buildings').style.display = 'none';
+            const el = document.getElementById('menu-' + view);
+            if (el) el.style.display = 'flex';
+        }
+
+        function setBuildMode(mode) {
+            STATE.buildMode = mode;
+            const cost = mode === 'research' ? CONFIG.researchCost : CONFIG.towerCost;
+            logAction(`Build mode: ${mode === 'research' ? 'Research Lab' : 'Tower'} (${cost}💰)`, '#ff66b2');
+        }
+
+        function buyUpgrade(type, category) {
+            const upgTree = category === 'troop' ? PLAYER_UPGRADES : PLAYER_TOWER_UPGRADES;
+            const upg = upgTree[type];
+            if (STATE.money >= upg.cost && STATE.isWaitingForWave) {
+                STATE.money -= upg.cost; upg.level++; upg.cost = Math.floor(upg.cost * 1.5);
+                logAction(`You upgraded ${category === 'troop' ? 'Troop' : 'Tower'} ${upg.name}!`, '#ff66b2');
+                if (MULTIPLAYER) sendPvPAction({ type: 'buy_upgrade', category, upgradeType: type });
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('ui-money').innerText = STATE.money;
+            document.getElementById('ui-lives').innerText = Math.max(0, STATE.lives);
+            document.getElementById('ui-ai-money').innerText = STATE.aiMoney;
+            document.getElementById('ui-ai-lives').innerText = Math.max(0, STATE.aiLives);
+            document.getElementById('ui-wave').innerText = STATE.wave === 0 ? 1 : STATE.wave;
+
+            const timerEl = document.getElementById('timer-container');
+            if (STATE.isWaitingForWave && !STATE.isGameOver) {
+                timerEl.style.display = 'inline'; document.getElementById('ui-timer').innerText = Math.ceil(STATE.waveCountdown);
+            } else { timerEl.style.display = 'none'; }
+            
+            const btn = document.getElementById('btn-start-wave');
+            btn.disabled = STATE.waveActive; btn.innerText = STATE.waveActive ? "Troops Deployed..." : "Deploy Now (Skip Timer)";
+
+            const upgradeMenu = document.getElementById('upgrade-menu');
+            STATE.isWaitingForWave && !STATE.isGameOver ? upgradeMenu.classList.add('active') : upgradeMenu.classList.remove('active');
+
+            ['hp', 'speed', 'count'].forEach(type => {
+                const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_UPGRADES[type];
+                btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
+                btnEl.disabled = STATE.money < upg.cost;
+            });
+
+            ['dmg', 'range', 'fireRate'].forEach(type => {
+                const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_TOWER_UPGRADES[type];
+                btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
+                btnEl.disabled = STATE.money < upg.cost;
+            });
+        }
+
+        // --- Interaction ---
+        function setupInteraction() {
+            const upgradeMenu = document.getElementById('upgrade-menu');
+            const upgradeHeader = document.getElementById('upgrade-header');
+            let isDragging = false, startX, startY, initialX, initialY;
+
+            upgradeHeader.addEventListener('pointerdown', (e) => {
+                isDragging = true; startX = e.clientX; startY = e.clientY;
+                initialX = upgradeMenu.offsetLeft; initialY = upgradeMenu.offsetTop; e.stopPropagation();
+            });
+            document.addEventListener('pointermove', (e) => {
+                if (!isDragging) return; let dx = e.clientX - startX, dy = e.clientY - startY;
+                upgradeMenu.style.left = (initialX + dx) + 'px'; upgradeMenu.style.top = (initialY + dy) + 'px';
+            });
+            document.addEventListener('pointerup', () => { isDragging = false; });
+
+            const container = document.getElementById('game-container');
+            container.addEventListener('mousemove', (e) => {
+                if (STATE.isGameOver) return;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const allHoverTargets = [...towerHoverMeshes, ...tiles];
+                const intersects = raycaster.intersectObjects(allHoverTargets);
+                buildPreviewTower.visible = false;
+                buildPreviewResearch.visible = false;
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    if (hit.userData && hit.userData.tower) {
+                        const tower = hit.userData.tower;
+                        const effRange = tower.baseRange + (tower.owner === 'player' ? PLAYER_TOWER_UPGRADES.range.level * PLAYER_TOWER_UPGRADES.range.bonus : AI_TOWER_UPGRADES.range.level * AI_TOWER_UPGRADES.range.bonus);
+                        rangeCircleMesh.position.set(tower.pos.x, 0.06, tower.pos.z);
+                        rangeCircleMesh.scale.setScalar(effRange / 4.5);
+                        rangeCircleMesh.visible = true;
+                    } else if (hit.userData && hit.userData.r !== undefined) {
+                        const { r, c, isBuildable, isPlayerZone } = hit.userData;
+                        const pos = getWorldPos(r, c);
+                        const canBuild = isBuildable && isPlayerZone && grid[r][c] === 0;
+                        if (STATE.buildMode === 'tower') {
+                            rangeCircleMesh.position.set(pos.x, 0.06, pos.z);
+                            rangeCircleMesh.scale.setScalar((4.5 + PLAYER_TOWER_UPGRADES.range.level * PLAYER_TOWER_UPGRADES.range.bonus) / 4.5);
+                            rangeCircleMesh.visible = canBuild;
+                            buildPreviewTower.position.set(pos.x, 0, pos.z);
+                            buildPreviewTower.visible = true;
+                            buildPreviewTower.traverse(o => { if (o.material) o.material.color.setHex(canBuild ? 0x00aa44 : 0xaa3300); });
+                        } else if (STATE.buildMode === 'research') {
+                            rangeCircleMesh.visible = false;
+                            buildPreviewResearch.position.set(pos.x, 0, pos.z);
+                            buildPreviewResearch.visible = true;
+                            buildPreviewResearch.traverse(o => { if (o.material) o.material.color.setHex(canBuild ? 0x2266aa : 0xaa3300); });
+                        } else {
+                            rangeCircleMesh.visible = false;
+                        }
+                    } else { rangeCircleMesh.visible = false; }
+                } else { rangeCircleMesh.visible = false; }
+            });
+
+            let mouseDownPos = {x: 0, y: 0};
+            container.addEventListener('pointerdown', (e) => { mouseDownPos = {x: e.clientX, y: e.clientY}; });
+            container.addEventListener('pointerup', (e) => {
+                if (e.button === 2) return;
+                if (STATE.isGameOver || Math.sqrt(Math.pow(e.clientX - mouseDownPos.x, 2) + Math.pow(e.clientY - mouseDownPos.y, 2)) > 5) return;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const allClickables = [...tiles, ...researchClickables];
+                const intersects = raycaster.intersectObjects(allClickables);
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    if (hit.userData && hit.userData.isResearch) {
+                        openResearchPanel(hit.userData.building);
+                        return;
+                    }
+                    const ud = hit.userData;
+                    if (ud && ud.r !== undefined && ud.c !== undefined && (STATE.buildMode === 'tower' || STATE.buildMode === 'research')) {
+                        const { r, c, isBuildable, isPlayerZone } = ud;
+                        const cost = STATE.buildMode === 'research' ? CONFIG.researchCost : CONFIG.towerCost;
+                        if (isBuildable && grid[r][c] === 0 && isPlayerZone && STATE.money >= cost) {
+                            STATE.money -= cost;
+                            if (STATE.buildMode === 'research') { buildResearch(r, c); logAction("You Built a Research Lab!", "#ff66b2"); if (MULTIPLAYER) sendPvPAction({ type: 'build_research', r, c }); }
+                            else { buildTower(r, c, 'player'); logAction("You Built a Defense Tower!", "#ff66b2"); if (MULTIPLAYER) sendPvPAction({ type: 'build_tower', r, c }); }
+                            updateUI();
+                        }
+                    }
+                }
+            });
+
+            container.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                STATE.buildMode = null;
+                document.getElementById('upgrade-menu').querySelectorAll('[id^="menu-"]').forEach(m => { m.style.display = 'none'; });
+                document.getElementById('menu-main').style.display = 'flex';
+                closeResearchPanel();
+                rangeCircleMesh.visible = false;
+                buildPreviewTower.visible = false;
+                buildPreviewResearch.visible = false;
+            });
+
+            document.getElementById('btn-start-wave').addEventListener('click', () => { if (!STATE.waveActive && !STATE.isGameOver) startNextWave(); });
+            document.getElementById('btn-reset-view').addEventListener('click', () => { camera.position.copy(CONFIG.defaultCameraPos); controls.target.copy(CONFIG.defaultCameraTarget); controls.update(); });
+            document.getElementById('btn-speed').addEventListener('click', () => {
+                STATE.gameSpeed = STATE.gameSpeed >= 3 ? 1 : STATE.gameSpeed + 1;
+                document.getElementById('btn-speed').textContent = '⏩ Speed: ' + STATE.gameSpeed + 'x';
+            });
+        }
+
+        // --- Game Entities ---
+        function buildTower(r, c, owner) {
+            grid[r][c] = 2; const pos = getWorldPos(r, c); const group = new THREE.Group();
+            const techMap = createTechTexture(); // Texture for towers!
+
+            const baseMat = new THREE.MeshStandardMaterial({ map: techMap, color: 0x4a4a4a, metalness: 0.5, roughness: 0.5 });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.tileSize * 0.7, 0.4, CONFIG.tileSize * 0.7), baseMat);
+            base.position.y = 0.2; base.castShadow = true; base.receiveShadow = true;
+
+            const headGroup = new THREE.Group(); headGroup.position.y = 0.4;
+            const headColor = owner === 'player' ? 0xff66b2 : 0xff0000;
+            const headMat = new THREE.MeshStandardMaterial({ color: headColor, metalness: 0.35, roughness: 0.35 });
+            const headMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 0.4, 16), headMat);
+            headMesh.position.y = 0.2; headMesh.castShadow = true; headMesh.receiveShadow = true;
+            const barrelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.2 });
+            const barrelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.7, 12), barrelMat);
+            barrelMesh.rotation.x = Math.PI / 2; barrelMesh.position.set(0, 0.2, 0.4); barrelMesh.castShadow = true;
+
+            headGroup.add(headMesh, barrelMesh); group.add(base, headGroup); group.position.copy(pos); scene.add(group);
+            
+            const towerRef = { owner, mesh: group, head: headGroup, pos: pos.clone(), baseRange: 4.5, baseDamage: 20, baseFireRate: 0.6, cooldown: 0 };
+            towers.push(towerRef);
+            base.userData = { tower: towerRef };
+            towerHoverMeshes.push(base);
+        }
+
+        function buildResearch(r, c) {
+            grid[r][c] = 3;
+            const pos = getWorldPos(r, c);
+            const group = new THREE.Group();
+            const techMap = createTechTexture();
+            const bodyMat = new THREE.MeshStandardMaterial({ map: techMap, color: 0x3366aa, metalness: 0.4, roughness: 0.6 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(CONFIG.tileSize * 0.6, 0.8, CONFIG.tileSize * 0.6), bodyMat);
+            body.position.y = 0.4; body.castShadow = true; body.receiveShadow = true;
+            const domeMat = new THREE.MeshStandardMaterial({ color: 0x66aaff, metalness: 0.25, roughness: 0.6 });
+            const dome = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+            dome.position.y = 0.75; dome.rotation.x = Math.PI / 2; dome.castShadow = true;
+            group.add(body, dome); group.position.copy(pos); scene.add(group);
+            const buildingRef = { mesh: group, pos: pos.clone(), r, c };
+            researchBuildings.push(buildingRef);
+            body.userData = { isResearch: true, building: buildingRef };
+            dome.userData = { isResearch: true, building: buildingRef };
+            researchClickables.push(body, dome);
+        }
+
+        function openResearchPanel(building) {
+            STATE.selectedResearch = building;
+            document.getElementById('research-panel').style.opacity = '1';
+            document.getElementById('research-panel').style.visibility = 'visible';
+            document.getElementById('research-panel').style.pointerEvents = 'auto';
+            updateResearchButtons();
+        }
+
+        function closeResearchPanel() {
+            STATE.selectedResearch = null;
+            document.getElementById('research-panel').style.opacity = '0';
+            document.getElementById('research-panel').style.visibility = 'hidden';
+            document.getElementById('research-panel').style.pointerEvents = 'none';
+        }
+
+        function updateResearchButtons() {
+            RESEARCH_TROOPS.forEach((r, i) => {
+                const btn = document.getElementById('research-troop' + (i + 1));
+                const done = STATE_RESEARCHED[r.id];
+                const bonus = (r.bonusHp ? '+' + r.bonusHp + ' HP ' : '') + (r.bonusSpeed ? '+' + r.bonusSpeed + ' Spd ' : '') + (r.bonusDmg ? '+' + r.bonusDmg + ' Dmg' : '').trim();
+                btn.textContent = done ? r.name + ' ✓' : r.name + ' (' + bonus + ') — ' + r.cost + '💰';
+                btn.disabled = done || STATE.money < r.cost || !STATE.isWaitingForWave;
+            });
+        }
+
+        function buyResearch(id) {
+            const r = RESEARCH_TROOPS.find(x => x.id === id);
+            if (!r || STATE_RESEARCHED[id] || STATE.money < r.cost || !STATE.isWaitingForWave) return;
+            STATE.money -= r.cost;
+            STATE_RESEARCHED[id] = true;
+            STATE.researchBonusHp += r.bonusHp;
+            STATE.researchBonusSpeed += r.bonusSpeed;
+            STATE.researchBonusDmg += r.bonusDmg;
+            logAction('Researched ' + r.name + '!', '#66aaff');
+            if (MULTIPLAYER) sendPvPAction({ type: 'buy_research', id });
+            updateUI(); updateResearchButtons();
+        }
+
+        function spawnTroop(hp, speed, owner, laneIndex, bonusDmg) {
+            const color = owner === 'player' ? 0xff66b2 : 0xff0000;
+            const geo = new THREE.IcosahedronGeometry(0.35, 0);
+            const mat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.1, flatShading: true }); 
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = 0.35; mesh.castShadow = true; mesh.receiveShadow = true;
+
+            const hpGroup = new THREE.Group();
+            const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.12), new THREE.MeshBasicMaterial({color: 0x000000}));
+            const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.12), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+            hpFg.position.z = 0.01; hpGroup.add(hpBg, hpFg); hpGroup.position.y = 0.9; 
+
+            const container = new THREE.Group();
+            const wps = owner === 'ai' ? aiWaypoints[laneIndex] : playerWaypoints[laneIndex];
+            container.position.copy(wps[0]);
+            
+            container.add(mesh);
+            container.add(hpGroup);
+            scene.add(container);
+            
+            const baseDamage = 10 + (STATE.wave * 5) + (bonusDmg || 0);
+
+            enemies.push({ 
+                owner: owner, container: container, mesh: mesh, hp: hp, maxHp: hp, speed: speed, 
+                wps: wps, waypointIndex: 1, pos: container.position, isFlashing: 0,
+                hpFg: hpFg, hpGroup: hpGroup,
+                
+                state: 'MOVING', attackTarget: null, attackRange: 1.2, damage: baseDamage,
+                attackCooldown: 0, attackRate: 1.0, animTimer: 0
+            });
+        }
+
+        function removeEnemy(enemy) {
+            scene.remove(enemy.container); enemy.mesh.geometry.dispose(); enemy.mesh.material.dispose();
+            const index = enemies.indexOf(enemy); if (index > -1) enemies.splice(index, 1);
+        }
+
+        function shoot(tower, target, calculatedDamage) {
+            const color = tower.owner === 'player' ? 0xffaacc : 0xffaaaa;
+            const geo = new THREE.TetrahedronGeometry(0.12, 0);
+            const mat = new THREE.MeshBasicMaterial({ color: color }); 
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            const startPos = tower.pos.clone(); startPos.y += 0.6; 
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(tower.head.quaternion);
+            startPos.add(forward.multiplyScalar(0.5));
+            mesh.position.copy(startPos); scene.add(mesh);
+
+            projectiles.push({ owner: tower.owner, mesh: mesh, target: target, damage: calculatedDamage, speed: 20.0 });
+        }
+
+        function removeProjectile(proj) {
+            scene.remove(proj.mesh); proj.mesh.geometry.dispose(); proj.mesh.material.dispose();
+            const index = projectiles.indexOf(proj); if (index > -1) projectiles.splice(index, 1);
+        }
+
+        // --- Game Logic ---
+        function startNextWave(fromOpponent) {
+            if (MULTIPLAYER && !fromOpponent) sendPvPAction({ type: 'start_wave' });
+            STATE.wave++; STATE.waveActive = true; STATE.isWaitingForWave = false;
+            
+            const baseAmount = 5 + Math.floor(STATE.wave * 2);
+            const aiBonus = Math.round(((Math.floor(STATE.wave * 0.5) + 2) * DIFF_MOD.aiSpawnBonus));
+            STATE.aiToSpawn = baseAmount + aiBonus + (AI_UPGRADES.count.level * AI_UPGRADES.count.bonus);
+            STATE.playerToSpawn = baseAmount + (PLAYER_UPGRADES.count.level * PLAYER_UPGRADES.count.bonus);
+            
+            STATE.spawnTimer = 0; updateUI();
+        }
+
+        function checkGameOver() {
+            if (STATE.isGameOver) return;
+            if (STATE.lives <= 0) { STATE.isGameOver = true; document.getElementById('game-over').classList.add('active'); } 
+            else if (STATE.aiLives <= 0) { STATE.isGameOver = true; document.getElementById('victory').classList.add('active'); }
+        }
+
+        function processAIDecisions() {
+            let keepBuying = true; let safetyCount = 0;
+            while (keepBuying && safetyCount < 10) {
+                safetyCount++;
+                const pOffense = PLAYER_UPGRADES.hp.level + PLAYER_UPGRADES.speed.level + PLAYER_UPGRADES.count.level;
+                const aiDefense = AI_TOWER_UPGRADES.dmg.level + AI_TOWER_UPGRADES.range.level + AI_TOWER_UPGRADES.fireRate.level + (towers.filter(t => t.owner === 'ai').length * 0.6);
+                let needDefense = pOffense > aiDefense;
+                const aggressionBonus = (STATE.aiLives > STATE.lives ? 2 : 1) * DIFF_MOD.aggressionMult;
+
+                let options = [];
+                let validSpots = [];
+                for (let r = 0; r < CONFIG.gridH / 2; r++) {
+                    for (let c = 0; c < CONFIG.gridW; c++) {
+                        if (grid[r][c] === 0) validSpots.push({r, c});
+                    }
+                }
+                
+                if (validSpots.length > 0) options.push({ type: 'build_tower', cost: CONFIG.towerCost, cat: 'build', weight: needDefense ? 6 : 2 });
+                ['hp', 'speed', 'count'].forEach(u => { options.push({ type: u, cost: AI_UPGRADES[u].cost, cat: 'troop', weight: (needDefense ? 1.5 : 4) * aggressionBonus }); });
+                ['dmg', 'range', 'fireRate'].forEach(u => { options.push({ type: u, cost: AI_TOWER_UPGRADES[u].cost, cat: 'tower', weight: (needDefense ? 4 : 2) * aggressionBonus }); });
+
+                if (options.length === 0) break;
+
+                let totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+                let randomVal = Math.random() * totalWeight;
+                let selectedOption = null;
+                for (let opt of options) { randomVal -= opt.weight; if (randomVal <= 0) { selectedOption = opt; break; } }
+                if (!selectedOption) break;
+
+                if (STATE.aiMoney >= selectedOption.cost) {
+                    STATE.aiMoney -= selectedOption.cost;
+                    if (selectedOption.type === 'build_tower') {
+                        let spot = null;
+                        let nearPathSpots = validSpots.filter(s => {
+                            return playerPathCells.some(p => Math.abs(s.r - p.r) + Math.abs(s.c - p.c) <= 2);
+                        });
+                        if (nearPathSpots.length > 0) spot = nearPathSpots[Math.floor(Math.random() * nearPathSpots.length)];
+                        else spot = validSpots[Math.floor(Math.random() * validSpots.length)];
+
+                        buildTower(spot.r, spot.c, 'ai'); logAction("AI Built a Defense Tower!", "#ff0000");
+                    } else {
+                        const upgTree = selectedOption.cat === 'troop' ? AI_UPGRADES : AI_TOWER_UPGRADES;
+                        const upg = upgTree[selectedOption.type];
+                        upg.level++; upg.cost = Math.floor(upg.cost * 1.5);
+                        logAction(`AI Upgraded ${selectedOption.cat === 'troop' ? 'Troop' : 'Tower'} ${upg.name}!`, "#ff0000");
+                    }
+                    updateUI();
+                } else keepBuying = false;
+            }
+        }
+
+        // --- Main Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            fpsFrameCount++;
+            const now = performance.now();
+            if (now - fpsLastTime >= 500) {
+                fpsValue = Math.round((fpsFrameCount * 1000) / (now - fpsLastTime));
+                fpsFrameCount = 0; fpsLastTime = now;
+                const el = document.getElementById('fps-display');
+                if (el) el.textContent = 'FPS: ' + fpsValue;
+            }
+            if (STATE.isGameOver) return;
+            let dt = Math.min(clock.getDelta(), 0.1);
+            dt *= STATE.gameSpeed; 
+
+            // Particle Updates
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.life -= dt * 2.0; 
+                if (p.life <= 0) {
+                    scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); particles.splice(i, 1);
+                } else {
+                    p.velocity.y -= 9.8 * dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.scale.setScalar(Math.max(0, p.life));
+                }
+            }
+
+            if (STATE.isWaitingForWave && (MULTIPLAYER ? STATE.pvpReady : true)) {
+                STATE.waveCountdown -= dt;
+                let currentSec = Math.ceil(STATE.waveCountdown);
+                if (currentSec !== lastTimerSec) { lastTimerSec = currentSec; updateUI(); }
+                if (STATE.waveCountdown <= 0) startNextWave();
+
+                STATE.aiDecisionTimer -= dt;
+                if (STATE.aiDecisionTimer <= 0 && !MULTIPLAYER) {
+                    processAIDecisions();
+                    const [a, b] = DIFF_MOD.decisionInterval;
+                    STATE.aiDecisionTimer = a + Math.random() * b;
+                }
+            }
+
+            controls.update();
+
+            playerBaseHpGroup.quaternion.copy(camera.quaternion); aiBaseHpGroup.quaternion.copy(camera.quaternion);
+            const pScale = Math.max(0, STATE.lives / CONFIG.startLives); playerBaseHpFg.scale.x = pScale; playerBaseHpFg.position.x = -1.75 * (1 - pScale); 
+            const aiScale = Math.max(0, STATE.aiLives / CONFIG.startLives); aiBaseHpFg.scale.x = aiScale; aiBaseHpFg.position.x = -1.75 * (1 - aiScale);
+
+            // Spawning Logic
+            if (STATE.waveActive && (STATE.aiToSpawn > 0 || STATE.playerToSpawn > 0)) {
+                STATE.spawnTimer -= dt;
+                if (STATE.spawnTimer <= 0) {
+                    const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
+                    
+                    if (STATE.aiToSpawn > 0) {
+                        const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + (MULTIPLAYER ? OPPONENT_RESEARCH.speed : 0);
+                        const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + (MULTIPLAYER ? OPPONENT_RESEARCH.hp : 0);
+                        const aiLane = Math.floor(Math.random() * 3);
+                        spawnTroop(aiHp, aiSpeed, 'ai', aiLane, MULTIPLAYER ? OPPONENT_RESEARCH.dmg : 0);
+                        STATE.aiToSpawn--;
+                    }
+                    
+                    if (STATE.playerToSpawn > 0) {
+                        const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
+                        const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
+                        const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
+                        spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg); 
+                        STATE.playerToSpawn--;
+                        STATE.spawnIndex++;
+                    }
+                    STATE.spawnTimer = 0.9; 
+                }
+            } else if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
+                STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
+                STATE.money += 50 + (STATE.wave * 15);
+                STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
+                updateUI();
+            }
+
+            // --- Troop Movement, Combat FSM, and Flocking (Separation) ---
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                
+                enemy.hpGroup.quaternion.copy(camera.quaternion);
+
+                if (enemy.isFlashing > 0) {
+                    enemy.isFlashing -= dt;
+                    enemy.mesh.material.emissive.setHex(0xffffff); 
+                    enemy.mesh.material.emissiveIntensity = 1.5;
+                } else {
+                    enemy.mesh.material.emissive.setHex(0x000000); 
+                }
+
+                // Finite State Machine: ATTACKING State
+                if (enemy.state === 'ATTACKING') {
+                    if (!enemy.attackTarget || enemy.attackTarget.hp <= 0 || !enemies.includes(enemy.attackTarget)) {
+                        enemy.state = 'MOVING';
+                        enemy.attackTarget = null;
+                        enemy.mesh.scale.setScalar(1.0); 
+                    } else {
+                        const dx = enemy.pos.x - enemy.attackTarget.pos.x;
+                        const dz = enemy.pos.z - enemy.attackTarget.pos.z;
+                        const distToTarget = Math.sqrt(dx*dx + dz*dz);
+                        
+                        if (distToTarget > enemy.attackRange) {
+                            enemy.state = 'MOVING';
+                            enemy.attackTarget = null;
+                            enemy.mesh.scale.setScalar(1.0);
+                        } else {
+                            enemy.attackCooldown -= dt;
+                            enemy.animTimer += dt * 15;
+                            enemy.mesh.scale.setScalar(1.0 + Math.sin(enemy.animTimer) * 0.15); 
+
+                            if (enemy.attackCooldown <= 0) {
+                                enemy.attackTarget.hp -= enemy.damage;
+                                enemy.attackTarget.isFlashing = 0.1;
+                                
+                                const hpPercent = Math.max(0, enemy.attackTarget.hp / enemy.attackTarget.maxHp);
+                                enemy.attackTarget.hpFg.scale.x = hpPercent;
+                                enemy.attackTarget.hpFg.position.x = -0.4 * (1 - hpPercent);
+
+                                if (enemy.attackTarget.hp <= 0) {
+                                    if (enemy.owner === 'player') STATE.money += 15; 
+                                    if (enemy.owner === 'ai') STATE.aiMoney += 15;
+                                    createExplosion(enemy.attackTarget.pos, enemy.owner === 'player' ? 0xff0000 : 0xff66b2);
+                                    removeEnemy(enemy.attackTarget);
+                                    updateUI();
+                                    
+                                    enemy.state = 'MOVING';
+                                    enemy.attackTarget = null;
+                                    enemy.mesh.scale.setScalar(1.0);
+                                }
+                                enemy.attackCooldown = enemy.attackRate;
+                            }
+                        }
+                    }
+                }
+
+                // Finite State Machine: MOVING State
+                if (enemy.state === 'MOVING') {
+                    let closestOpponent = null;
+                    let minDist = enemy.attackRange;
+                    
+                    for (let j = 0; j < enemies.length; j++) {
+                        const other = enemies[j];
+                        if (enemy.owner !== other.owner && other.hp > 0) {
+                            const dx = enemy.pos.x - other.pos.x;
+                            const dz = enemy.pos.z - other.pos.z;
+                            const d = Math.sqrt(dx*dx + dz*dz);
+                            if (d < minDist) { minDist = d; closestOpponent = other; }
+                        }
+                    }
+
+                    if (closestOpponent) {
+                        enemy.state = 'ATTACKING';
+                        enemy.attackTarget = closestOpponent;
+                    } else {
+                        enemy.mesh.rotation.x += dt * 2; enemy.mesh.rotation.z += dt * 2;
+
+                        const targetWp = enemy.wps[enemy.waypointIndex];
+                        const dxWp = targetWp.x - enemy.pos.x;
+                        const dzWp = targetWp.z - enemy.pos.z;
+                        const distToWp = Math.sqrt(dxWp*dxWp + dzWp*dzWp);
+
+                        if (distToWp < enemy.speed * dt) {
+                            enemy.pos.x = targetWp.x; enemy.pos.z = targetWp.z; enemy.waypointIndex++;
+                            if (enemy.waypointIndex >= enemy.wps.length) {
+                                if (enemy.owner === 'ai') STATE.lives--; if (enemy.owner === 'player') STATE.aiLives--;
+                                removeEnemy(enemy); updateUI(); checkGameOver();
+                                continue; 
+                            }
+                        } else {
+                            const moveX = (dxWp / distToWp) * enemy.speed * dt;
+                            const moveZ = (dzWp / distToWp) * enemy.speed * dt;
+                            enemy.pos.x += moveX;
+                            enemy.pos.z += moveZ;
+                        }
+                    }
+                }
+
+                // Flocking Algorithm (Separation)
+                for (let j = 0; j < enemies.length; j++) {
+                    if (i === j) continue;
+                    const other = enemies[j];
+                    
+                    const dx = enemy.pos.x - other.pos.x;
+                    const dz = enemy.pos.z - other.pos.z;
+                    const distSq = dx*dx + dz*dz;
+                    
+                    if (distSq > 0.0001 && distSq < 0.36) { 
+                        const dist = Math.sqrt(distSq);
+                        const pushForce = (0.6 - dist) * dt * 2.0; 
+                        
+                        enemy.pos.x += (dx / dist) * pushForce;
+                        enemy.pos.z += (dz / dist) * pushForce;
+                    }
+                }
+            }
+
+            // Tower Logic with Dynamic Upgrades
+            for (let tower of towers) {
+                tower.cooldown -= dt; 
+                
+                let effDmg = tower.baseDamage; let effRange = tower.baseRange; let effFireRate = tower.baseFireRate;
+                if (tower.owner === 'player') {
+                    effDmg += PLAYER_TOWER_UPGRADES.dmg.level * PLAYER_TOWER_UPGRADES.dmg.bonus;
+                    effRange += PLAYER_TOWER_UPGRADES.range.level * PLAYER_TOWER_UPGRADES.range.bonus;
+                    effFireRate = Math.max(0.15, effFireRate - (PLAYER_TOWER_UPGRADES.fireRate.level * PLAYER_TOWER_UPGRADES.fireRate.bonus));
+                } else {
+                    effDmg += AI_TOWER_UPGRADES.dmg.level * AI_TOWER_UPGRADES.dmg.bonus;
+                    effRange += AI_TOWER_UPGRADES.range.level * AI_TOWER_UPGRADES.range.bonus;
+                    effFireRate = Math.max(0.15, effFireRate - (AI_TOWER_UPGRADES.fireRate.level * AI_TOWER_UPGRADES.fireRate.bonus));
+                }
+
+                let closestEnemy = null, minDist = effRange;
+                for (let enemy of enemies) {
+                    if (enemy.owner !== tower.owner) {
+                        const dx = enemy.pos.x - tower.pos.x, dz = enemy.pos.z - tower.pos.z, d = Math.sqrt(dx*dx + dz*dz);
+                        if (d < minDist) { minDist = d; closestEnemy = enemy; }
+                    }
+                }
+                if (closestEnemy) {
+                    const targetPos = closestEnemy.pos.clone(); targetPos.y = tower.head.position.y + tower.mesh.position.y;
+                    tower.head.lookAt(targetPos);
+                    if (tower.cooldown <= 0) { shoot(tower, closestEnemy, effDmg); tower.cooldown = effFireRate; }
+                }
+            }
+
+            // Projectile Logic
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                if (!proj.target || !enemies.includes(proj.target)) { removeProjectile(proj); continue; }
+
+                proj.mesh.rotation.x += dt * 10; proj.mesh.rotation.y += dt * 10; 
+
+                const targetCenter = proj.target.pos.clone(); targetCenter.y += 0.35; 
+                const dir = new THREE.Vector3().subVectors(targetCenter, proj.mesh.position); const dist = dir.length();
+
+                if (dist < proj.speed * dt) {
+                    proj.target.hp -= proj.damage;
+                    proj.target.isFlashing = 0.1;
+
+                    const hpPercent = Math.max(0, proj.target.hp / proj.target.maxHp);
+                    proj.target.hpFg.scale.x = hpPercent;
+                    proj.target.hpFg.position.x = -0.4 * (1 - hpPercent);
+
+                    if (proj.target.hp <= 0) {
+                        if (proj.owner === 'player') STATE.money += 15;
+                        if (proj.owner === 'ai') STATE.aiMoney += 18;
+                        createExplosion(proj.target.pos, proj.owner === 'player' ? 0xff0000 : 0xff66b2);
+                        
+                        for (let e of enemies) {
+                            if (e.attackTarget === proj.target) {
+                                e.state = 'MOVING';
+                                e.attackTarget = null;
+                                e.mesh.scale.setScalar(1.0);
+                            }
+                        }
+                        
+                        removeEnemy(proj.target); updateUI();
+                    }
+                    removeProjectile(proj);
+                } else { dir.normalize(); proj.mesh.position.add(dir.multiplyScalar(proj.speed * dt)); }
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

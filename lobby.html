@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Prism Siege - PvP Lobby</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            min-height: 100vh;
+            min-height: 100dvh;
+            background-color: #0b0b12;
+            font-family: 'Rajdhani', sans-serif;
+            color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow-x: hidden; position: relative;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        body::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 102, 178, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 102, 178, 0.07) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -2;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(3);
+            animation: gridMove 15s linear infinite;
+        }
+        body::after {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,0,0,0.15) 0%, rgba(255,102,178,0.05) 40%, transparent 70%);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: -1; pointer-events: none;
+        }
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 40px; }
+        }
+        .lobby-box {
+            text-align: center;
+            max-width: 440px;
+            padding: 2.5rem;
+            background: rgba(25, 25, 40, 0.9);
+            border: 1px solid rgba(255, 102, 178, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 102, 178, 0.15);
+            z-index: 1;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: #ff66b2;
+            margin-bottom: 0.5rem;
+            letter-spacing: 3px;
+        }
+        .lobby-sub { color: #b3b3cc; font-size: 0.95rem; margin-bottom: 2rem; }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff66b2, #ff0000);
+            color: white; border: none; padding: 14px 32px;
+            font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 700;
+            border-radius: 50px; cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 20px rgba(255, 102, 178, 0.35);
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+        .btn:hover { transform: scale(1.04); box-shadow: 0 0 30px rgba(255, 102, 178, 0.5); }
+        .btn.secondary {
+            background: rgba(40,40,60,0.9);
+            border: 1px solid rgba(255,102,178,0.5);
+            padding: 10px 24px;
+            font-size: 0.9rem;
+        }
+        .btn.secondary:hover { background: rgba(255,102,178,0.2); }
+        .section { margin-bottom: 1.5rem; }
+        .section-title { color: #b3b3cc; font-size: 0.9rem; margin-bottom: 0.6rem; }
+        input[type="text"] {
+            padding: 12px 16px;
+            width: 160px;
+            margin-right: 8px;
+            border-radius: 8px;
+            border: 1px solid #ff66b2;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+        .row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .status { color: #888; font-size: 0.9rem; margin-top: 1.25rem; }
+        .waiting-list {
+            text-align: left;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid rgba(255,102,178,0.25);
+        }
+        .waiting-list h3 { color: #ff66b2; font-size: 1rem; margin-bottom: 0.75rem; letter-spacing: 1px; }
+        .player-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            background: rgba(0,0,0,0.35);
+            border-radius: 10px;
+            border: 1px solid rgba(255,102,178,0.2);
+        }
+        .player-row .name { font-weight: 600; color: #e6e6e6; }
+        .player-row .btn-challenge {
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+        .waiting-list-empty { color: #666; font-size: 0.9rem; padding: 0.75rem 0; }
+        .back-link {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            color: #ff66b2;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            background: rgba(25, 25, 40, 0.85);
+            border: 1px solid rgba(255, 102, 178, 0.45);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            transition: all 0.25s ease;
+        }
+        .back-link:hover {
+            background: rgba(255, 102, 178, 0.15);
+            border-color: #ff66b2;
+            box-shadow: 0 0 20px rgba(255, 102, 178, 0.3);
+            transform: translateX(-2px);
+        }
+        .back-link:active { transform: translateX(0) scale(0.98); }
+        #main-options { }
+        #searching, #waiting { display: none; }
+        #searching p:first-of-type { color: #ffcc00; margin-bottom: 0.5rem; }
+        #waiting .code { font-size: 2rem; font-weight: bold; letter-spacing: 6px; color: #fff; margin: 0.75rem 0; }
+
+        /* Responsive: all screen sizes */
+        .lobby-box {
+            width: 100%;
+            max-width: min(440px, 92vw);
+            padding: clamp(1.25rem, 4vw, 2.5rem);
+            margin: 0 clamp(0.5rem, 2vw, 1rem);
+        }
+        h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
+        .lobby-sub { font-size: clamp(0.85rem, 2vw, 0.95rem); margin-bottom: clamp(1rem, 3vw, 2rem); }
+        .btn { padding: clamp(10px, 2vw, 14px) clamp(20px, 4vw, 32px); font-size: clamp(0.9rem, 2vw, 1rem); }
+        .btn.secondary { padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 24px); font-size: clamp(0.8rem, 1.8vw, 0.9rem); }
+        input[type="text"] {
+            width: 100%;
+            min-width: 0;
+            max-width: 180px;
+            padding: clamp(10px, 2vw, 12px) clamp(12px, 2.5vw, 16px);
+            font-size: clamp(1rem, 2vw, 1.1rem);
+        }
+        .row { justify-content: center; }
+        .player-row { padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 14px); flex-wrap: wrap; gap: 8px; }
+        .player-row .name { font-size: clamp(0.85rem, 2vw, 1rem); min-width: 0; }
+        .player-row .btn-challenge { flex-shrink: 0; }
+        .back-link {
+            top: max(12px, env(safe-area-inset-top));
+            left: max(12px, env(safe-area-inset-left));
+            padding: clamp(8px, 2vw, 12px) clamp(14px, 3vw, 20px);
+            font-size: clamp(0.8rem, 2vw, 0.95rem);
+        }
+        #waiting .code { font-size: clamp(1.5rem, 4vw, 2rem); letter-spacing: clamp(3px, 1.5vw, 6px); }
+
+        @media (max-width: 480px) {
+            .row { flex-direction: column; }
+            input[type="text"] { max-width: none; }
+            .player-row { flex-direction: column; align-items: stretch; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to menu</a>
+    <div class="lobby-box">
+        <h1>PvP Lobby</h1>
+        <p class="lobby-sub">Find an opponent or play with a friend</p>
+
+        <div id="main-options">
+            <div class="section">
+                <button class="btn" id="btn-find-match" style="width: 100%;">Find Match</button>
+                <p class="section-title">Match with a random player</p>
+            </div>
+            <div class="waiting-list">
+                <h3>Players seeking game</h3>
+                <div id="waiting-list-container">
+                    <p class="waiting-list-empty" id="waiting-list-empty">No one waiting. Click Find Match to appear here.</p>
+                    <div id="waiting-list-rows"></div>
+                </div>
+            </div>
+            <div class="section" style="border-top: 1px solid rgba(255,102,178,0.25); padding-top: 1.25rem;">
+                <p class="section-title">Play with a friend</p>
+                <button class="btn secondary" id="btn-create-room" style="margin-bottom: 0.75rem;">Create Private Room</button>
+                <div class="row">
+                    <input type="text" id="room-code-input" placeholder="Room code" maxlength="8">
+                    <button class="btn secondary" id="btn-join-room">Join</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="searching">
+            <p>Searching for opponent...</p>
+            <p id="queue-info" class="section-title"></p>
+            <button class="btn secondary" id="btn-cancel-match">Cancel</button>
+        </div>
+
+        <div id="waiting">
+            <p class="section-title">Share this code:</p>
+            <p id="room-code-display" class="code"></p>
+            <p class="section-title">Waiting for opponent...</p>
+            <button class="btn secondary" id="btn-cancel-waiting">Cancel</button>
+        </div>
+
+        <p id="status" class="status"></p>
+    </div>
+
+    <script>
+        function getWsUrl() {
+            if (window.PRISM_SIEGE_WS_URL) return window.PRISM_SIEGE_WS_URL;
+            var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var host = location.host || 'localhost:8080';
+            return proto + '//' + host.replace(/\/$/, '') + '/ws';
+        }
+
+        var ws = null;
+        var roomId = null;
+        var playerIdx = null;
+        var myClientId = null;
+
+        function showMain() {
+            document.getElementById('main-options').style.display = 'block';
+            document.getElementById('searching').style.display = 'none';
+            document.getElementById('waiting').style.display = 'none';
+        }
+        function showSearching() {
+            document.getElementById('main-options').style.display = 'none';
+            document.getElementById('searching').style.display = 'block';
+            document.getElementById('waiting').style.display = 'none';
+        }
+        function showWaiting() {
+            document.getElementById('main-options').style.display = 'none';
+            document.getElementById('searching').style.display = 'none';
+            document.getElementById('waiting').style.display = 'block';
+        }
+        function goToGame() {
+            if (roomId != null && playerIdx != null)
+                location.href = 'game-engine.html?mode=pvp&room_id=' + encodeURIComponent(roomId) + '&player_idx=' + playerIdx;
+        }
+
+        function connect() {
+            ws = new WebSocket(getWsUrl());
+            ws.onopen = function() { document.getElementById('status').textContent = 'Connected'; };
+            ws.onclose = function() { document.getElementById('status').textContent = 'Disconnected'; };
+            ws.onmessage = function(e) {
+                try {
+                    var msg = JSON.parse(e.data);
+                    if (msg.event === 'joined') {
+                        roomId = msg.room_id;
+                        playerIdx = msg.player_idx;
+                        if (msg.ready) {
+                            goToGame();
+                            return;
+                        }
+                        document.getElementById('room-code-display').textContent = (msg.room_id || '').toUpperCase();
+                        showWaiting();
+                    } else if (msg.event === 'opponent_joined') {
+                        goToGame();
+                    } else if (msg.event === 'matchmaking') {
+                        if (msg.status === 'searching') {
+                            showSearching();
+                            document.getElementById('queue-info').textContent = (msg.queue_size || 0) >= 2 ? 'Match found!' : 'Players in queue: ' + (msg.queue_size || 0);
+                        } else if (msg.status === 'cancelled') {
+                            showMain();
+                            document.getElementById('status').textContent = 'Cancelled';
+                        }
+                    } else if (msg.event === 'identity') {
+                        myClientId = (msg.client_id || '').toLowerCase();
+                    } else if (msg.event === 'waiting_list') {
+                        renderWaitingList(msg.players || []);
+                    } else if (msg.event === 'error') {
+                        document.getElementById('status').textContent = msg.msg || 'Error';
+                    }
+                } catch (err) {}
+            };
+        }
+
+        function renderWaitingList(players) {
+            var emptyEl = document.getElementById('waiting-list-empty');
+            var rowsEl = document.getElementById('waiting-list-rows');
+            rowsEl.innerHTML = '';
+            if (players.length === 0) {
+                emptyEl.style.display = 'block';
+                return;
+            }
+            emptyEl.style.display = 'none';
+            players.forEach(function(p) {
+                var id = (p.id || '').toLowerCase();
+                var isSelf = myClientId && id === myClientId;
+                var name = p.name || ('Player ' + (id || '').substring(0, 6).toUpperCase());
+                if (isSelf) name = name + ' (you)';
+                var row = document.createElement('div');
+                row.className = 'player-row';
+                row.innerHTML = '<span class="name">' + name + '</span>' +
+                    (isSelf ? '<span class="section-title">Waiting...</span>' : '<button type="button" class="btn secondary btn-challenge" data-id="' + (p.id || '') + '">Challenge</button>');
+                if (!isSelf) {
+                    row.querySelector('.btn-challenge').onclick = function() {
+                        var targetId = this.getAttribute('data-id');
+                        if (ws && ws.readyState === 1 && targetId) {
+                            document.getElementById('status').textContent = '';
+                            ws.send(JSON.stringify({ cmd: 'challenge', target_id: targetId }));
+                        }
+                    };
+                }
+                rowsEl.appendChild(row);
+            });
+        }
+
+        document.getElementById('btn-find-match').onclick = function() {
+            if (!ws || ws.readyState !== 1) return;
+            document.getElementById('status').textContent = '';
+            ws.send(JSON.stringify({ cmd: 'find_match' }));
+        };
+        document.getElementById('btn-cancel-match').onclick = function() {
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ cmd: 'cancel_match' }));
+            showMain();
+        };
+        document.getElementById('btn-create-room').onclick = function() {
+            if (!ws || ws.readyState !== 1) return;
+            document.getElementById('status').textContent = '';
+            ws.send(JSON.stringify({ cmd: 'create' }));
+        };
+        document.getElementById('btn-join-room').onclick = function() {
+            var code = (document.getElementById('room-code-input').value || '').trim().toLowerCase();
+            if (!code || !ws || ws.readyState !== 1) return;
+            document.getElementById('status').textContent = '';
+            ws.send(JSON.stringify({ cmd: 'join', room_id: code }));
+        };
+        document.getElementById('btn-cancel-waiting').onclick = function() { location.reload(); };
+
+        connect();
+    </script>
+</body>
+</html>

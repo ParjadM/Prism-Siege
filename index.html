@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prism Siege - 3D Tower Defense</title>
+    <!-- Import Sci-Fi Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
+
+        body, html {
+            min-height: 100vh;
+            min-height: 100dvh;
+            background-color: #0b0b12;
+            font-family: 'Rajdhani', sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        /* Animated Neon Grid Background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255, 102, 178, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 102, 178, 0.07) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -2;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(3);
+            animation: gridMove 15s linear infinite;
+        }
+
+        /* Glowing Ambient Orbs */
+        body::after {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,0,0,0.15) 0%, rgba(255,102,178,0.05) 40%, transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 40px; }
+        }
+
+        .hero {
+            text-align: center; 
+            padding: 3rem 2rem;
+            z-index: 1;
+            max-width: 1000px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem; 
+            font-weight: 900;
+            margin: 0 0 0.5rem;
+            background: linear-gradient(135deg, #ff66b2, #ff0000);
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 102, 178, 0.5);
+            letter-spacing: 6px;
+            text-transform: uppercase;
+        }
+
+        .subtitle { 
+            color: #b3b3cc; 
+            font-size: 1.5rem; 
+            margin-bottom: 3.5rem; 
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+
+        /* Pulse glowing play button */
+        .btn-play {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff66b2, #ff0000);
+            color: white; 
+            text-decoration: none;
+            padding: 18px 56px; 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem; 
+            font-weight: 700;
+            border-radius: 50px; 
+            border: 2px solid rgba(255, 102, 178, 0.5);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 0 20px rgba(255, 102, 178, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.2);
+            text-transform: uppercase; 
+            letter-spacing: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-play::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .btn-play:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 10px 40px rgba(255, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
+            border-color: #ffb3d9;
+        }
+
+        .btn-play:active { transform: scale(0.98); }
+
+        /* Glassmorphism Feature Cards */
+        .features {
+            display: flex; 
+            gap: 2rem; 
+            margin-top: 5rem; 
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+
+        .feature { 
+            text-align: center; 
+            width: 240px; 
+            background: rgba(30, 30, 45, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 102, 178, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            transition: all 0.4s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle glowing top border for cards */
+        .feature::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #ff66b2, transparent);
+            opacity: 0.5;
+        }
+
+        .feature:hover {
+            transform: translateY(-10px);
+            border-color: rgba(255, 102, 178, 0.6);
+            background: rgba(40, 40, 60, 0.6);
+            box-shadow: 0 15px 45px rgba(255, 0, 0, 0.2);
+        }
+
+        .feature span { 
+            font-size: 3rem; 
+            display: block; 
+            margin-bottom: 1rem; 
+            filter: drop-shadow(0 0 10px rgba(255,102,178,0.5));
+            transition: transform 0.3s ease;
+        }
+
+        .feature:hover span {
+            transform: scale(1.1);
+        }
+
+        .feature p { 
+            margin: 0; 
+            color: #e6e6e6; 
+            font-size: 1.1rem; 
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        /* Responsive: all screen sizes */
+        .hero { padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem); max-width: min(1000px, 95vw); }
+        h1 { font-size: clamp(2rem, 8vw, 5rem); letter-spacing: clamp(2px, 1.5vw, 6px); }
+        .subtitle { font-size: clamp(0.95rem, 2.5vw, 1.5rem); margin-bottom: clamp(1.5rem, 4vw, 3.5rem); }
+        .btn-play { padding: clamp(12px, 2.5vw, 18px) clamp(24px, 6vw, 56px); font-size: clamp(1rem, 2.5vw, 1.4rem); }
+        .features { gap: clamp(1rem, 3vw, 2rem); margin-top: clamp(2rem, 6vw, 5rem); }
+        .feature { width: min(240px, 100%); padding: clamp(1rem, 3vw, 2.5rem) clamp(0.75rem, 2vw, 1.5rem); }
+        .feature span { font-size: clamp(2rem, 5vw, 3rem); }
+        .feature p { font-size: clamp(0.9rem, 2vw, 1.1rem); }
+
+        @media (max-width: 768px) {
+            .hero > div[style] { flex-direction: column; width: 100%; }
+            .hero .btn-play { width: 100%; max-width: 320px; }
+        }
+        @media (max-width: 480px) {
+            .btn-settings { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); width: 44px; height: 44px; font-size: 1.2rem; }
+            .settings-panel { margin: max(12px, env(safe-area-inset-top)); max-width: calc(100vw - 2rem); }
+        }
+
+        /* Settings button */
+        .btn-settings {
+            position: fixed; top: 24px; right: 24px;
+            width: 48px; height: 48px;
+            background: rgba(30, 30, 45, 0.6);
+            border: 1px solid rgba(255, 102, 178, 0.4);
+            border-radius: 50%;
+            color: #ff66b2; font-size: 1.4rem;
+            cursor: pointer; z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .btn-settings:hover {
+            background: rgba(255, 102, 178, 0.2);
+            box-shadow: 0 0 20px rgba(255, 102, 178, 0.4);
+        }
+
+        /* Settings panel overlay */
+        .settings-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .settings-overlay.active { display: flex; }
+        .settings-panel {
+            background: rgba(25, 25, 40, 0.95);
+            border: 1px solid rgba(255, 102, 178, 0.3);
+            border-radius: 16px; padding: 2rem 2.5rem;
+            max-width: 380px; width: 90%;
+        }
+        .settings-panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff66b2; margin-bottom: 1.5rem;
+            font-size: 1.2rem; letter-spacing: 2px;
+        }
+        .settings-row { margin-bottom: 1rem; }
+        .settings-row label { display: block; color: #b3b3cc; font-size: 0.9rem; margin-bottom: 0.6rem; }
+        .settings-btns {
+            display: flex; gap: 10px;
+        }
+        .settings-btns button {
+            flex: 1; padding: 12px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+            background: rgba(40,40,60,0.8); border: 1px solid rgba(255,102,178,0.3);
+            color: #e6e6e6; border-radius: 8px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .settings-btns button:hover { border-color: #ff66b2; background: rgba(255,102,178,0.15); }
+        .settings-btns button.active {
+            background: rgba(255, 102, 178, 0.3);
+            border-color: #ff66b2;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn-settings" id="btn-settings" title="Settings">⚙</button>
+    <div class="settings-overlay" id="settings-overlay">
+        <div class="settings-panel">
+            <h2>Settings</h2>
+            <div class="settings-row">
+                <label>AI difficulty</label>
+                <div class="settings-btns" id="ai-difficulty">
+                    <button data-value="easy">Easy</button>
+                    <button data-value="medium" class="active">Medium</button>
+                    <button data-value="hard">Hard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hero">
+        <h1>Prism Siege</h1>
+        <p class="subtitle">3D TOWER DEFENSE</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+            <a href="game-engine.html" id="link-vs-ai" class="btn-play">Play vs AI</a>
+            <a href="lobby.html" id="link-vs-player" class="btn-play" style="background: linear-gradient(135deg, #ff0000, #cc0044);">Play vs Player</a>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <span>🛡️</span>
+                <p>Construct Grid Defenses</p>
+            </div>
+            <div class="feature">
+                <span>⚔️</span>
+                <p>Command 3-Lane Assaults</p>
+            </div>
+            <div class="feature">
+                <span>🤖</span>
+                <p>Outsmart Adaptive AI</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        const STORAGE_KEY = 'prismSiege_aiDifficulty';
+        const overlay = document.getElementById('settings-overlay');
+        const aiBtns = document.getElementById('ai-difficulty').querySelectorAll('button');
+        const linkVsAi = document.getElementById('link-vs-ai');
+
+        function getDifficulty() { return localStorage.getItem(STORAGE_KEY) || 'medium'; }
+        function setDifficulty(v) {
+            localStorage.setItem(STORAGE_KEY, v);
+            aiBtns.forEach(b => { b.classList.toggle('active', b.dataset.value === v); });
+            linkVsAi.href = 'game-engine.html?ai=' + v;
+        }
+
+        document.getElementById('btn-settings').addEventListener('click', () => overlay.classList.add('active'));
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('active'); });
+        aiBtns.forEach(b => b.addEventListener('click', () => setDifficulty(b.dataset.value)));
+
+        setDifficulty(getDifficulty());
+        document.getElementById('link-vs-player').style.boxShadow = '0 0 20px rgba(255,0,0,0.4)';
+    </script>
+</body>
+</html>
