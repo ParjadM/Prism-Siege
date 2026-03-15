@@ -68,161 +68,213 @@
         }
 
         .hero {
-            text-align: center; 
-            padding: 3rem 2rem;
+            text-align: center;
+            padding: 2rem 1.5rem;
             z-index: 1;
             max-width: 1000px;
-            animation: fadeIn 1.2s ease-out;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            animation: fadeIn 1s ease-out;
+        }
+        .hero-head { margin-bottom: 0; }
+        .hero-bottom { margin-top: auto; }
+        .hero-foot {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 102, 178, 0.15);
+            color: rgba(179, 179, 204, 0.6);
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: clamp(2rem, 12vw, 5rem);
+            font-size: clamp(1.85rem, 9vw, 4rem);
             font-weight: 900;
-            margin: 0 0 0.5rem;
+            margin: 0 0 0.35rem;
             background: linear-gradient(135deg, #ff66b2, #ff0000);
-            -webkit-background-clip: text; 
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 30px rgba(255, 102, 178, 0.5);
-            letter-spacing: 6px;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
-        .subtitle { 
-            color: #b3b3cc; 
-            font-size: clamp(1rem, 4vw, 1.5rem); 
-            margin-bottom: clamp(2rem, 6vw, 3.5rem); 
-            letter-spacing: 2px;
+        .subtitle {
+            color: rgba(179, 179, 204, 0.95);
+            font-size: clamp(0.9rem, 2.2vw, 1.25rem);
+            margin-bottom: 0;
+            letter-spacing: 0.2em;
             font-weight: 500;
         }
 
-        /* Pulse glowing play button */
+        .play-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 0;
+        }
+
         .btn-play {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             background: linear-gradient(135deg, #ff66b2, #ff0000);
-            color: white; 
+            color: white;
             text-decoration: none;
-            padding: clamp(14px, 3vw, 18px) clamp(28px, 6vw, 56px);
-            min-height: 48px;
+            padding: 0.65rem 1.5rem;
+            min-height: 44px;
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.4rem; 
+            font-size: 0.95rem;
             font-weight: 700;
-            border-radius: 50px; 
-            border: 2px solid rgba(255, 102, 178, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 102, 178, 0.4);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 0 20px rgba(255, 102, 178, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.2);
-            text-transform: uppercase; 
-            letter-spacing: 3px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-play::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% { left: -100%; }
-            20% { left: 100%; }
-            100% { left: 100%; }
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 4px 16px rgba(255, 102, 178, 0.25);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
         }
 
         .btn-play:hover {
-            transform: scale(1.05) translateY(-3px);
-            box-shadow: 0 10px 40px rgba(255, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
-            border-color: #ffb3d9;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 102, 178, 0.4);
+            border-color: rgba(255, 102, 178, 0.6);
         }
 
-        .btn-play:active { transform: scale(0.98); }
+        .btn-play:active { transform: translateY(0); }
+        .btn-label-short { display: none; }
+        .btn-label-long { display: inline; }
+        .btn-play-pvp { background: linear-gradient(135deg, #e60000, #b30033); border-color: rgba(255, 0, 0, 0.4); }
+        .btn-play-pvp:hover { box-shadow: 0 8px 24px rgba(255, 0, 0, 0.35); }
 
-        /* Glassmorphism Feature Cards */
+        /* Feature cards */
         .features {
-            display: flex; 
-            gap: 2rem; 
-            margin-top: 5rem; 
-            flex-wrap: wrap; 
+            display: flex;
+            gap: 1rem;
+            margin-top: 0;
+            flex-wrap: wrap;
             justify-content: center;
+            flex-shrink: 0;
         }
 
-        .feature { 
-            text-align: center; 
-            width: 240px; 
-            background: rgba(30, 30, 45, 0.4);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 102, 178, 0.2);
-            border-radius: 16px;
-            padding: 2.5rem 1.5rem;
-            transition: all 0.4s ease;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        .feature {
             position: relative;
-            overflow: hidden;
+            text-align: center;
+            width: 200px;
+            background: rgba(28, 28, 42, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 102, 178, 0.18);
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
-        /* Subtle glowing top border for cards */
         .feature::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, #ff66b2, transparent);
-            opacity: 0.5;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 102, 178, 0.5), transparent);
+            opacity: 0.6;
         }
 
         .feature:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255, 102, 178, 0.6);
-            background: rgba(40, 40, 60, 0.6);
-            box-shadow: 0 15px 45px rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 102, 178, 0.45);
+            box-shadow: 0 8px 28px rgba(255, 102, 178, 0.15);
         }
 
-        .feature span { 
-            font-size: 3rem; 
-            display: block; 
-            margin-bottom: 1rem; 
-            filter: drop-shadow(0 0 10px rgba(255,102,178,0.5));
-            transition: transform 0.3s ease;
+        .feature span {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.6rem;
         }
 
-        .feature:hover span {
-            transform: scale(1.1);
-        }
-
-        .feature p { 
-            margin: 0; 
-            color: #e6e6e6; 
-            font-size: 1.1rem; 
+        .feature p {
+            margin: 0;
+            color: rgba(230, 230, 230, 0.95);
+            font-size: 0.9rem;
             font-weight: 600;
-            line-height: 1.4;
+            line-height: 1.35;
         }
-
-        /* Responsive: all screen sizes */
-        .hero { padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem); max-width: min(1000px, 95vw); }
-        h1 { font-size: clamp(2rem, 8vw, 5rem); letter-spacing: clamp(2px, 1.5vw, 6px); }
-        .subtitle { font-size: clamp(0.95rem, 2.5vw, 1.5rem); margin-bottom: clamp(1.5rem, 4vw, 3.5rem); }
-        .btn-play { padding: clamp(12px, 2.5vw, 18px) clamp(24px, 6vw, 56px); font-size: clamp(1rem, 2.5vw, 1.4rem); }
-        .features { gap: clamp(1rem, 3vw, 2rem); margin-top: clamp(2rem, 6vw, 5rem); }
-        .feature { width: min(240px, 100%); padding: clamp(1rem, 3vw, 2.5rem) clamp(0.75rem, 2vw, 1.5rem); }
-        .feature span { font-size: clamp(2rem, 5vw, 3rem); }
-        .feature p { font-size: clamp(0.9rem, 2vw, 1.1rem); }
 
         @media (max-width: 768px) {
-            .hero > div[style] { flex-direction: column; width: 100%; }
-            .hero .btn-play { width: 100%; max-width: 320px; }
+            body, html { justify-content: flex-start; padding-top: max(0.75rem, env(safe-area-inset-top)); overflow-y: auto; }
+            .hero {
+                padding: 1rem 0.75rem 1.5rem;
+                width: 100%;
+                max-width: 100%;
+                min-height: auto;
+                justify-content: flex-start;
+                gap: 0;
+            }
+            .hero-foot { margin-top: 1rem; padding-top: 0.75rem; font-size: 0.65rem; }
+            .hero h1 {
+                font-size: 1.6rem;
+                letter-spacing: 0.06em;
+                margin-bottom: 0.2rem;
+            }
+            .hero .subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 1rem;
+                letter-spacing: 0.15em;
+            }
+            .play-buttons {
+                flex-direction: row;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+                width: 100%;
+                max-width: 100%;
+            }
+            .hero .btn-play {
+                flex: 1;
+                min-width: 0;
+                padding: 0.6rem 0.5rem;
+                font-size: 0.75rem;
+                letter-spacing: 0.08em;
+                min-height: 42px;
+            }
+            .btn-label-long { display: none; }
+            .btn-label-short { display: inline; }
+            .features {
+                margin-top: 1rem;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+                width: 100%;
+                max-width: 100%;
+            }
+            .feature {
+                width: 100%;
+                min-width: 0;
+                padding: 0.65rem 0.4rem;
+            }
+            .feature::before { opacity: 0.5; }
+            .feature span { font-size: 1.4rem; margin-bottom: 0.25rem; }
+            .feature p { font-size: 0.6rem; line-height: 1.25; }
         }
         @media (max-width: 480px) {
-            .btn-settings { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); width: 44px; height: 44px; font-size: 1.2rem; }
+            .hero { padding: 0.75rem 0.6rem 1.25rem; }
+            .hero h1 { font-size: 1.4rem; }
+            .hero .subtitle { font-size: 0.72rem; margin-bottom: 0.85rem; }
+            .play-buttons { margin-bottom: 0.85rem; gap: 0.4rem; }
+            .hero .btn-play { font-size: 0.7rem; padding: 0.55rem 0.4rem; min-height: 40px; }
+            .features { margin-top: 0.85rem; gap: 0.4rem; }
+            .feature { padding: 0.5rem 0.35rem; }
+            .feature span { font-size: 1.2rem; }
+            .feature p { font-size: 0.55rem; }
+            .btn-settings { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); width: 42px; height: 42px; font-size: 1.1rem; }
             .settings-panel { margin: max(12px, env(safe-area-inset-top)); max-width: calc(100vw - 2rem); }
         }
 
@@ -297,13 +349,16 @@
         </div>
     </div>
     <div class="hero">
-        <h1>Prism Siege</h1>
-        <p class="subtitle">3D TOWER DEFENSE</p>
-        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
-            <a href="game-engine.html" id="link-vs-ai" class="btn-play">Play vs AI</a>
-            <a href="lobby.html" id="link-vs-player" class="btn-play" style="background: linear-gradient(135deg, #ff0000, #cc0044);">Play vs Player</a>
+        <div class="hero-head">
+            <h1>Prism Siege</h1>
+            <p class="subtitle">3D TOWER DEFENSE</p>
+        </div>
+        <div class="play-buttons">
+            <a href="game-engine.html" id="link-vs-ai" class="btn-play"><span class="btn-label-long">Play vs AI</span><span class="btn-label-short">Vs AI</span></a>
+            <a href="lobby.html" id="link-vs-player" class="btn-play btn-play-pvp"><span class="btn-label-long">Play vs Player</span><span class="btn-label-short">Vs Player</span></a>
         </div>
         
+        <div class="hero-bottom">
         <div class="features">
             <div class="feature">
                 <span>🛡️</span>
@@ -317,6 +372,8 @@
                 <span>🤖</span>
                 <p>Outsmart Adaptive AI</p>
             </div>
+        </div>
+        <p class="hero-foot">Build · Defend · Conquer</p>
         </div>
     </div>
     <script>
@@ -337,7 +394,7 @@
         aiBtns.forEach(b => b.addEventListener('click', () => setDifficulty(b.dataset.value)));
 
         setDifficulty(getDifficulty());
-        document.getElementById('link-vs-player').style.boxShadow = '0 0 20px rgba(255,0,0,0.4)';
+        document.getElementById('link-vs-player').style.boxShadow = '0 4px 16px rgba(255,0,0,0.25)';
     </script>
 </body>
 </html>

@@ -533,6 +533,7 @@
         const mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
         let lastTimerSec = 30;
         let fpsFrameCount = 0, fpsLastTime = performance.now(), fpsValue = 60;
+        let lastPvPSyncTime = 0;
 
         let playerBaseGroup, aiBaseGroup, playerBaseHpFg, aiBaseHpFg;
 
@@ -557,7 +558,7 @@
             const troopUpgrades = { hp: PLAYER_UPGRADES.hp.level, speed: PLAYER_UPGRADES.speed.level, count: PLAYER_UPGRADES.count.level };
             const towerUpgrades = { dmg: PLAYER_TOWER_UPGRADES.dmg.level, range: PLAYER_TOWER_UPGRADES.range.level, fireRate: PLAYER_TOWER_UPGRADES.fireRate.level };
             const research_done = Object.keys(STATE_RESEARCHED).filter(id => STATE_RESEARCHED[id]);
-            return { towers: playerTowers, research, upgrades: { troop: troopUpgrades, tower: towerUpgrades }, research_done, wave: STATE.wave, waveActive: STATE.waveActive };
+            return { towers: playerTowers, research, upgrades: { troop: troopUpgrades, tower: towerUpgrades }, research_done, wave: STATE.wave, waveActive: STATE.waveActive, lives: STATE.lives, money: STATE.money };
         }
         function sendPvPState() {
             if (STATE.ws && STATE.ws.readyState === 1) {
@@ -601,6 +602,8 @@
             (state.towers || []).forEach(({ r, c }) => { const rM = 27 - r, cM = c; if (grid[rM] && grid[rM][cM] === 0) buildTower(rM, cM, 'ai'); });
             (state.research || []).forEach(({ r, c }) => { const rM = 27 - r, cM = c; if (grid[rM] && grid[rM][cM] === 0) buildResearch(rM, cM); });
             if (state.wave !== undefined && state.wave > STATE.wave) { STATE.wave = state.wave; STATE.waveActive = !!state.waveActive; }
+            if (state.lives !== undefined) STATE.aiLives = Math.max(0, state.lives);
+            if (state.money !== undefined) STATE.aiMoney = Math.max(0, state.money);
             logAction('Opponent state synced.', '#66ff66');
             updateUI();
         }
@@ -624,7 +627,14 @@
                 const rT = RESEARCH_TROOPS.find(x => x.id === id);
                 if (rT && !OPPONENT_RESEARCHED[id]) { OPPONENT_RESEARCHED[id] = true; OPPONENT_RESEARCH.hp += rT.bonusHp || 0; OPPONENT_RESEARCH.speed += rT.bonusSpeed || 0; OPPONENT_RESEARCH.dmg += rT.bonusDmg || 0; logAction('Opponent researched ' + rT.name + '!', '#ff0000'); updateUI(); }
             } else if (type === 'start_wave') {
-                startNextWave(true);
+                if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
+                if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
+                startNextWave(true, a.wave);
+            } else if (type === 'sync_state') {
+                if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
+                if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
+                if (a.wave !== undefined && a.wave > STATE.wave) STATE.wave = a.wave;
+                updateUI();
             }
         }
 
@@ -1327,16 +1337,24 @@
         }
 
         // --- Game Logic ---
-        function startNextWave(fromOpponent) {
-            if (MULTIPLAYER && !fromOpponent) sendPvPAction({ type: 'start_wave' });
-            STATE.wave++; STATE.waveActive = true; STATE.isWaitingForWave = false;
-            
+        function startNextWave(fromOpponent, syncWaveNumber) {
+            if (MULTIPLAYER && !fromOpponent) {
+                STATE.wave++;
+                sendPvPAction({ type: 'start_wave', wave: STATE.wave, lives: STATE.lives, money: STATE.money });
+            } else if (MULTIPLAYER && fromOpponent) {
+                if (syncWaveNumber != null && syncWaveNumber > STATE.wave) STATE.wave = syncWaveNumber;
+                else if (syncWaveNumber == null) STATE.wave++;
+            } else {
+                STATE.wave++;
+            }
+            STATE.waveActive = true;
+            STATE.isWaitingForWave = false;
             const baseAmount = 5 + Math.floor(STATE.wave * 2);
             const aiBonus = Math.round(((Math.floor(STATE.wave * 0.5) + 2) * DIFF_MOD.aiSpawnBonus));
             STATE.aiToSpawn = baseAmount + aiBonus + (AI_UPGRADES.count.level * AI_UPGRADES.count.bonus);
             STATE.playerToSpawn = baseAmount + (PLAYER_UPGRADES.count.level * PLAYER_UPGRADES.count.bonus);
-            
-            STATE.spawnTimer = 0; updateUI();
+            STATE.spawnTimer = 0;
+            updateUI();
         }
 
         function checkGameOver() {
@@ -1409,7 +1427,15 @@
             }
             if (STATE.isGameOver) return;
             let dt = Math.min(clock.getDelta(), 0.1);
-            dt *= STATE.gameSpeed; 
+            dt *= STATE.gameSpeed;
+
+            if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx >= 0) {
+                const t = performance.now() / 1000;
+                if (t - lastPvPSyncTime >= 2.5) {
+                    lastPvPSyncTime = t;
+                    sendPvPAction({ type: 'sync_state', lives: STATE.lives, money: STATE.money, wave: STATE.wave });
+                }
+            }
 
             // Particle Updates
             for (let i = particles.length - 1; i >= 0; i--) {
