@@ -505,6 +505,8 @@
                             const newE = enemies[enemies.length - 1];
                             newE.id = inc.id; newE.maxHp = inc.maxHp;
                             newE.pos.x = inc.x; newE.pos.z = inc.z; newE.state = inc.state;
+                            newE.mesh.position.copy(newE.pos);
+                            newE.container.position.copy(newE.pos);
                         }
                     }
                 }
@@ -1380,12 +1382,15 @@
                         }
                         STATE.spawnTimer = 0.9; 
                     }
-                } else if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
-                    STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
+                }
+            }
+            if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
+                STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
+                if (!MULTIPLAYER || STATE.playerIdx === 0) {
                     STATE.money += 50 + (STATE.wave * 15);
                     STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
-                    updateUI();
                 }
+                updateUI();
             }
 
             // --- Troop Movement, Combat FSM, and Flocking (Separation) ---
