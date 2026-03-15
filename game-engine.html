@@ -200,6 +200,7 @@
 <body>
 
     <div id="game-container"></div>
+    <div id="damage-numbers" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; overflow:hidden;"></div>
 
     <div id="ui-layer">
         <div id="fps-display" style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.85rem; font-variant-numeric: tabular-nums; pointer-events: none;">FPS: 60</div>
@@ -365,6 +366,8 @@
         AI_TOWER_UPGRADES.fireRate.cost = Math.round(baseAiCosts.fireRate * DIFF_MOD.aiCostMult);
 
         const tiles = [], towers = [], researchBuildings = [], researchClickables = [], towerHoverMeshes = [], enemies = [], projectiles = [], particles = [];
+        const damageNumbers = [];
+        let screenShake = 0;
         const RESEARCH_TROOPS = [
             { id: 'heavy', name: 'Heavy Armor', cost: 75, bonusHp: 80, bonusSpeed: 0, bonusDmg: 0 },
             { id: 'swift', name: 'Swift Strike', cost: 75, bonusHp: 0, bonusSpeed: 0.4, bonusDmg: 0 },
@@ -827,12 +830,39 @@
         }
 
         function createExplosion(pos, colorHex) {
-            const count = 10, geo = new THREE.BoxGeometry(0.15, 0.15, 0.15), mat = new THREE.MeshBasicMaterial({ color: colorHex });
+            addScreenShake(0.15); // Add shake on death
+            const count = 30, geo = new THREE.BoxGeometry(0.12, 0.12, 0.12), mat = new THREE.MeshBasicMaterial({ color: colorHex });
             for(let i=0; i<count; i++) {
                 const mesh = new THREE.Mesh(geo, mat); mesh.position.copy(pos);
-                const vx = (Math.random() - 0.5) * 4, vy = Math.random() * 4 + 2, vz = (Math.random() - 0.5) * 4;
+                // Bouncy fragments with gravity
+                const vx = (Math.random() - 0.5) * 8, vy = Math.random() * 8 + 3, vz = (Math.random() - 0.5) * 8;
                 scene.add(mesh); particles.push({ mesh, velocity: new THREE.Vector3(vx, vy, vz), life: 1.0 });
             }
+        }
+
+        function addScreenShake(amount) {
+            screenShake = Math.min(screenShake + amount, 0.5);
+        }
+
+        function spawnDamageNumber(pos, amount, color = 0xffffff) {
+            const el = document.createElement('div');
+            el.className = 'damage-text';
+            el.innerText = Math.round(amount);
+            el.style.color = '#' + color.toString(16).padStart(6, '0');
+            el.style.position = 'absolute';
+            el.style.fontWeight = 'bold';
+            el.style.textShadow = `1px 1px 2px #000, -1px -1px 2px #000, 0px 0px 6px #${color.toString(16).padStart(6, '0')}`;
+            el.style.pointerEvents = 'none';
+            el.style.fontSize = '1.3rem';
+            el.style.zIndex = '1000';
+            document.getElementById('damage-numbers').appendChild(el);
+            
+            const startPos = pos.clone();
+            startPos.x += (Math.random() - 0.5) * 0.5;
+            startPos.z += (Math.random() - 0.5) * 0.5;
+            startPos.y += 0.8 + Math.random() * 0.4;
+
+            damageNumbers.push({ el, pos: startPos, life: 1.0, maxLife: 1.0, velY: 1.5 + Math.random() * 1.5 });
         }
 
         // --- Logging System ---
@@ -1210,18 +1240,21 @@
             const index = enemies.indexOf(enemy); if (index > -1) enemies.splice(index, 1);
         }
 
-        function shoot(tower, target, calculatedDamage) {
+        function shoot(tower, target, calculatedDamage, aestheticDamage = calculatedDamage) {
             const color = tower.owner === 'player' ? 0xffaacc : 0xffaaaa;
-            const geo = new THREE.TetrahedronGeometry(0.12, 0);
+            const geo = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 8);
+            geo.rotateX(Math.PI / 2);
             const mat = new THREE.MeshBasicMaterial({ color: color }); 
             const mesh = new THREE.Mesh(geo, mat);
             
             const startPos = tower.pos.clone(); startPos.y += 0.6; 
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(tower.head.quaternion);
             startPos.add(forward.multiplyScalar(0.5));
-            mesh.position.copy(startPos); scene.add(mesh);
+            mesh.position.copy(startPos);
+            mesh.quaternion.copy(tower.head.quaternion);
+            scene.add(mesh);
 
-            projectiles.push({ owner: tower.owner, mesh: mesh, target: target, damage: calculatedDamage, speed: 20.0 });
+            projectiles.push({ owner: tower.owner, mesh: mesh, target: target, damage: calculatedDamage, aestheticDamage: aestheticDamage, speed: 35.0 });
         }
 
         function removeProjectile(proj) {
@@ -1324,10 +1357,8 @@
             }
             if (STATE.isGameOver) return;
             
-            let rawDt = clock.getDelta();
-            if (rawDt > 0.1) rawDt = 0.1;
-            window.smoothedDt = (window.smoothedDt || rawDt) * 0.9 + rawDt * 0.1;
-            let dt = window.smoothedDt;
+            let dt = clock.getDelta();
+            if (dt > 0.05) dt = 0.05; // Cap to 20fps minimum to prevent huge physics jumps
             dt *= STATE.gameSpeed;
 
             if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
@@ -1342,11 +1373,21 @@
             // Particle Updates
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.life -= dt * 2.0; 
+                p.life -= dt * 1.5; 
                 if (p.life <= 0) {
                     scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); particles.splice(i, 1);
                 } else {
-                    p.velocity.y -= 9.8 * dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.scale.setScalar(Math.max(0, p.life));
+                    p.velocity.y -= 20.0 * dt; // Gravity
+                    p.mesh.position.addScaledVector(p.velocity, dt); 
+                    
+                    // Bounce off the ground
+                    if (p.mesh.position.y < 0) {
+                        p.mesh.position.y = 0;
+                        p.velocity.y *= -0.5; // Dampen bounce
+                        p.velocity.x *= 0.8; // Friction
+                        p.velocity.z *= 0.8;
+                    }
+                    p.mesh.scale.setScalar(Math.max(0, p.life));
                 }
             }
 
@@ -1368,6 +1409,39 @@
             }
 
             controls.update();
+
+            // Apply Screen Shake AFTER controls update to temporarily displace camera
+            if (screenShake > 0) {
+                camera.position.x += (Math.random() - 0.5) * screenShake * 2.0;
+                camera.position.y += (Math.random() - 0.5) * screenShake * 2.0;
+                camera.position.z += (Math.random() - 0.5) * screenShake * 2.0;
+                screenShake -= dt * 1.5;
+                if (screenShake < 0) screenShake = 0;
+            }
+
+            // Damage Numbers Update
+            for (let i = damageNumbers.length - 1; i >= 0; i--) {
+                let d = damageNumbers[i];
+                d.life -= dt;
+                if (d.life <= 0) {
+                    if (d.el.parentNode) d.el.parentNode.removeChild(d.el);
+                    damageNumbers.splice(i, 1);
+                    continue;
+                }
+                d.pos.y += d.velY * dt;
+                
+                const screenPos = d.pos.clone().project(camera);
+                if (screenPos.z > 1.0) { d.el.style.opacity = 0; continue; } // Behind camera
+
+                const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (screenPos.y * -0.5 + 0.5) * window.innerHeight;
+                
+                const alpha = Math.max(0, d.life / d.maxLife);
+                d.el.style.left = x + 'px';
+                d.el.style.top = y + 'px';
+                d.el.style.opacity = alpha;
+                d.el.style.transform = `translate(-50%, -50%) scale(${0.5 + alpha * 0.7})`;
+            }
 
             playerBaseHpGroup.quaternion.copy(camera.quaternion); aiBaseHpGroup.quaternion.copy(camera.quaternion);
             const pScale = Math.max(0, STATE.lives / CONFIG.startLives); playerBaseHpFg.scale.x = pScale; playerBaseHpFg.position.x = -1.75 * (1 - pScale); 
@@ -1448,6 +1522,7 @@
                             if (enemy.attackCooldown <= 0) {
                                 if (!MULTIPLAYER || STATE.playerIdx === 0) {
                                     enemy.attackTarget.hp -= enemy.damage;
+                                    spawnDamageNumber(enemy.attackTarget.pos, enemy.damage, enemy.owner === 'player' ? 0xffffff : 0xff3333);
                                     if (enemy.attackTarget.hp <= 0) {
                                         if (enemy.owner === 'player') STATE.money += 15; 
                                         if (enemy.owner === 'ai') STATE.aiMoney += 15;
@@ -1493,7 +1568,6 @@
                         enemy.state = 'ATTACKING';
                         enemy.attackTarget = closestOpponent;
                     } else {
-                        enemy.mesh.rotation.x += dt * 2; enemy.mesh.rotation.z += dt * 2;
 
                         const targetWp = enemy.wps[enemy.waypointIndex];
                         const dxWp = targetWp.x - enemy.pos.x;
@@ -1564,9 +1638,9 @@
                     tower.head.lookAt(targetPos);
                     if (tower.cooldown <= 0) { 
                         if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                            shoot(tower, closestEnemy, effDmg); 
+                            shoot(tower, closestEnemy, effDmg, effDmg); 
                         } else {
-                            shoot(tower, closestEnemy, 0); // Guest applies 0 damage, purely visual
+                            shoot(tower, closestEnemy, 0, effDmg); // Guest applies 0 damage natively, purely visual
                         }
                         tower.cooldown = effFireRate; 
                     }
@@ -1578,14 +1652,17 @@
                 const proj = projectiles[i];
                 if (!proj.target || !enemies.includes(proj.target)) { removeProjectile(proj); continue; }
 
-                proj.mesh.rotation.x += dt * 10; proj.mesh.rotation.y += dt * 10; 
-
                 const targetCenter = proj.target.pos.clone(); targetCenter.y += 0.35; 
+                proj.mesh.lookAt(targetCenter);
+
                 const dir = new THREE.Vector3().subVectors(targetCenter, proj.mesh.position); const dist = dir.length();
 
                 if (dist < proj.speed * dt) {
                     if (!MULTIPLAYER || STATE.playerIdx === 0 || proj.damage === 0) {
                         proj.target.hp -= proj.damage;
+                    }
+                    if (proj.aestheticDamage > 0) {
+                        spawnDamageNumber(proj.target.pos, proj.aestheticDamage, proj.owner === 'player' ? 0xffffff : 0xff3333);
                     }
                     proj.target.isFlashing = 0.1;
 
