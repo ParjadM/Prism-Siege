@@ -237,6 +237,19 @@ async def handle_ws(request):
                             except Exception:
                                 pass
 
+            elif cmd == "state_sync":
+                r_id = getattr(ws, "room_id", None) or room_id
+                p_idx = getattr(ws, "player_idx", player_idx)
+                if r_id and rooms.get(r_id):
+                    payload = data.get("state", {})
+                    payload["from_player"] = p_idx
+                    for _ws in get_room_players(r_id):
+                        if _ws is not None and _ws is not ws and not getattr(_ws, "closed", True):
+                            try:
+                                await _ws.send_str(json.dumps({"event": "state_sync", "state": payload}))
+                            except Exception:
+                                pass
+
     except Exception:
         pass
     finally:

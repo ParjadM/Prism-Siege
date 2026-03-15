@@ -56,7 +56,11 @@
             bottom: max(100px, env(safe-area-inset-bottom) + 80px);
             right: max(12px, env(safe-area-inset-right));
             pointer-events: auto;
-            display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            align-items: center;
         }
 
         .upgrade-panel {
@@ -109,12 +113,28 @@
         .bottom-bar {
             padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2.5vw, 20px);
             padding-bottom: max(clamp(8px, 1.5vw, 10px), env(safe-area-inset-bottom));
-            display: flex; flex-direction: column; align-items: center;
-            pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: auto;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
         }
-
+        .bottom-bar .bottom-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(8px, 2vw, 12px);
+            margin-bottom: 6px;
+        }
+        .bottom-bar .instructions { margin-bottom: 0; }
+        .lane-label { color: white; font-size: 0.9rem; margin-right: 6px; font-weight: bold; }
         .lane-toggles {
-            display: flex; flex-wrap: wrap; gap: clamp(6px, 1.5vw, 10px); align-items: center; justify-content: center; margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(6px, 1.5vw, 10px);
+            align-items: center;
+            justify-content: center;
         }
 
         .btn {
@@ -146,10 +166,13 @@
         .btn:disabled { background-color: #555; color: #aaa; border-color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
 
         .instructions {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
-            text-align: center; margin-bottom: 6px; font-weight: 500;
-            padding: 0 8px;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: clamp(0.6rem, 1.6vw, 0.78rem);
+            text-align: center;
+            margin-bottom: 4px;
+            font-weight: 500;
+            padding: 0 6px;
+            line-height: 1.2;
         }
 
         .overlay {
@@ -163,11 +186,169 @@
         .overlay h1 { font-size: clamp(2rem, 8vw, 4rem); margin-bottom: 10px; text-transform: uppercase; letter-spacing: clamp(2px, 1vw, 4px); padding: 0 12px; text-align: center; }
         .overlay p { font-size: clamp(0.9rem, 2.5vw, 1.2rem); margin-bottom: 25px; color: #eee; padding: 0 16px; text-align: center; }
 
+        /* Mobile: compact layout */
+        .upgrade-fab {
+            display: none;
+            pointer-events: none;
+            position: absolute;
+            bottom: max(72px, env(safe-area-inset-bottom) + 56px);
+            left: max(10px, env(safe-area-inset-left));
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 102, 178, 0.95);
+            border: 2px solid rgba(255,255,255,0.4);
+            color: white; font-size: 1.25rem;
+            cursor: pointer; pointer-events: auto;
+            z-index: 99;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            align-items: center; justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .upgrade-fab:active { transform: scale(0.95); }
+
+        .deselect-btn {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .deselect-btn.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 4px;
+                padding: 6px 8px;
+                padding-top: max(6px, env(safe-area-inset-top));
+            }
+            .top-bar .side-stats {
+                gap: 4px;
+                flex: 0 0 auto;
+            }
+            .stat-box {
+                padding: 4px 6px;
+                font-size: 0.7rem;
+                min-width: 0;
+                flex: 0 1 auto;
+            }
+            .stat-box.neutral-color {
+                flex: 1 1 auto;
+                min-width: 0;
+                font-size: 0.7rem;
+            }
+            #timer-container { margin-left: 4px; }
+            #timer-container, #ui-timer { font-size: 0.7rem !important; }
+            #fps-display { display: none; }
+            /* Upgrade: hide default panel position, use fab + bottom sheet */
+            .upgrade-fab.visible { display: flex; pointer-events: auto; }
+            #upgrade-menu.upgrade-panel {
+                left: 0; top: auto; right: 0; bottom: 0;
+                width: 100%; max-width: none;
+                max-height: 0;
+                border-radius: 16px 16px 0 0;
+                padding: 0 12px 12px;
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+                transition: max-height 0.3s ease, opacity 0.3s ease;
+                overflow: hidden;
+            }
+            #upgrade-menu.upgrade-panel.active.mobile-open {
+                max-height: 55vh;
+                overflow-y: auto;
+            }
+            #upgrade-menu.upgrade-panel.active:not(.mobile-open) {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+            #upgrade-menu .upgrade-header {
+                padding: 10px 0 6px;
+                font-size: 0.9rem;
+            }
+            #upgrade-menu .btn.secondary {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+                min-height: 40px;
+            }
+            #action-log {
+                left: 8px;
+                right: auto;
+                top: auto;
+                bottom: max(130px, env(safe-area-inset-bottom) + 110px);
+                width: min(200px, 55vw);
+                max-height: 72px;
+                overflow: hidden;
+                gap: 2px;
+            }
+            .log-entry {
+                padding: 3px 6px;
+                font-size: 0.65rem;
+            }
+            .bottom-bar {
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+                gap: 4px;
+            }
+            .bottom-bar .bottom-row {
+                margin-bottom: 0;
+                gap: 8px;
+                flex-wrap: nowrap;
+            }
+            .lane-toggles {
+                margin-bottom: 0;
+                gap: 6px;
+                flex: 0 0 auto;
+            }
+            .lane-label { font-size: 0.7rem; margin-right: 4px; }
+            .lane-toggles .btn.secondary {
+                padding: 8px 10px;
+                min-height: 34px;
+                font-size: 0.7rem;
+            }
+            .bottom-bar .btn-deploy {
+                flex: 1;
+                min-width: 100px;
+                padding: 10px 12px;
+                font-size: 0.85rem;
+                min-height: 40px;
+            }
+            .instructions {
+                font-size: 0.58rem;
+                padding: 0 4px;
+            }
+            /* Move Speed/Camera to top-right on mobile so they don't overlap the bottom bar */
+            .floating-controls {
+                top: max(44px, env(safe-area-inset-top) + 38px);
+                bottom: auto;
+                right: max(8px, env(safe-area-inset-right));
+                left: auto;
+                gap: 6px;
+            }
+            .floating-controls .btn.secondary {
+                padding: 6px 8px;
+                min-height: 34px;
+                min-width: 34px;
+                font-size: 0.65rem;
+            }
+            .floating-controls #btn-speed { font-size: 0.65rem; }
+            .floating-controls #btn-reset-view { font-size: 0.6rem; white-space: nowrap; }
+            .deselect-btn.active { min-width: 60px; }
+            #research-panel {
+                width: min(280px, 92vw) !important;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+        }
+
         @media (max-width: 600px) {
-            .top-bar .stat-box.neutral-color { width: 100% !important; order: -1; }
+            .top-bar .stat-box.neutral-color { flex: 1 1 100%; order: -1; }
             #timer-container { display: block; margin-left: 0; margin-top: 2px; }
-            #research-panel { width: min(280px, 90vw) !important; left: 50%; transform: translate(-50%, -50%); }
-            .upgrade-panel { width: min(220px, 85vw) !important; max-width: 220px; }
         }
     </style>
 </head>
@@ -183,10 +364,10 @@
                 <div class="stat-box ai-color"><span id="label-opponent-money">AI</span> 💰: <span id="ui-ai-money">150</span></div>
             </div>
             
-            <div class="stat-box neutral-color" style="border-color: #ffd700; width: 200px; box-shadow: 0 0 10px rgba(255,215,0,0.3) inset;">
-                🌊 Wave: <span id="ui-wave">1</span>
+            <div class="stat-box neutral-color wave-box" style="border-color: #ffd700; width: 200px; box-shadow: 0 0 10px rgba(255,215,0,0.3) inset;">
+                🌊 <span id="ui-wave">1</span>
                 <span id="timer-container" style="margin-left: 10px; font-weight: normal; font-size: 0.85rem;">
-                    | Next in: <span id="ui-timer" style="color: #ffcc00; font-weight: bold;">30</span>s
+                    | <span id="ui-timer" style="color: #ffcc00; font-weight: bold;">30</span>s
                 </span>
             </div>
 
@@ -196,6 +377,7 @@
             </div>
         </div>
         
+        <button type="button" id="upgrade-fab" class="upgrade-fab" aria-label="Upgrades" title="Upgrades">☰</button>
         <div id="upgrade-menu" class="upgrade-panel">
             <div id="upgrade-header" class="upgrade-header">☰ Upgrade Hub</div>
             
@@ -239,21 +421,22 @@
         <div id="action-log"></div>
 
         <div class="floating-controls">
+            <button type="button" id="btn-deselect" class="btn secondary deselect-btn" title="Cancel build (or long-press on board)">✕ Deselect</button>
             <button id="btn-speed" class="btn secondary">⏩ Speed: 1x</button>
             <button id="btn-reset-view" class="btn secondary">🎥 Center Camera</button>
         </div>
 
         <div class="bottom-bar">
-            <div class="lane-toggles">
-                <span style="color:white; font-size: 0.9rem; margin-right: 5px; font-weight: bold;">Deploy Lanes:</span>
-                <button id="lane-btn-0" class="btn secondary active" onclick="toggleLane(0)">Left</button>
-                <button id="lane-btn-1" class="btn secondary active" onclick="toggleLane(1)">Mid</button>
-                <button id="lane-btn-2" class="btn secondary active" onclick="toggleLane(2)">Right</button>
+            <div class="bottom-row">
+                <div class="lane-toggles">
+                    <span class="lane-label">Lanes:</span>
+                    <button id="lane-btn-0" class="btn secondary active" onclick="toggleLane(0)">L</button>
+                    <button id="lane-btn-1" class="btn secondary active" onclick="toggleLane(1)">M</button>
+                    <button id="lane-btn-2" class="btn secondary active" onclick="toggleLane(2)">R</button>
+                </div>
+                <button id="btn-start-wave" class="btn btn-deploy">Deploy Now (Skip Timer)</button>
             </div>
-            <div class="instructions">
-                Buildings → select Tower or Research, then click green zone. Right-click to deselect.
-            </div>
-            <button id="btn-start-wave" class="btn">Deploy Now (Skip Timer)</button>
+            <div class="instructions">Tap green zone to build. Long-press or ✕ to cancel.</div>
         </div>
     </div>
 
@@ -368,6 +551,59 @@
         }
         const OPPONENT_RESEARCH = { hp: 0, speed: 0, dmg: 0 };
         const OPPONENT_RESEARCHED = {};
+        function getPvPState() {
+            const playerTowers = towers.filter(t => t.owner === 'player').map(t => ({ r: t.r, c: t.c }));
+            const research = researchBuildings.map(b => ({ r: b.r, c: b.c }));
+            const troopUpgrades = { hp: PLAYER_UPGRADES.hp.level, speed: PLAYER_UPGRADES.speed.level, count: PLAYER_UPGRADES.count.level };
+            const towerUpgrades = { dmg: PLAYER_TOWER_UPGRADES.dmg.level, range: PLAYER_TOWER_UPGRADES.range.level, fireRate: PLAYER_TOWER_UPGRADES.fireRate.level };
+            const research_done = Object.keys(STATE_RESEARCHED).filter(id => STATE_RESEARCHED[id]);
+            return { towers: playerTowers, research, upgrades: { troop: troopUpgrades, tower: towerUpgrades }, research_done, wave: STATE.wave, waveActive: STATE.waveActive };
+        }
+        function sendPvPState() {
+            if (STATE.ws && STATE.ws.readyState === 1) {
+                try { STATE.ws.send(JSON.stringify({ cmd: 'state_sync', state: getPvPState() })); } catch (e) {}
+            }
+        }
+        function applyPvPState(payload) {
+            const state = payload.state || payload;
+            if (state.from_player === STATE.playerIdx || STATE.playerIdx < 0) return;
+            const halfH = CONFIG.gridH / 2;
+            for (let i = towers.length - 1; i >= 0; i--) {
+                const t = towers[i];
+                if (t.owner !== 'ai') continue;
+                scene.remove(t.mesh);
+                const base = t.mesh.children[0];
+                if (base && base.userData && base.userData.tower) {
+                    const idx = towerHoverMeshes.indexOf(base);
+                    if (idx > -1) towerHoverMeshes.splice(idx, 1);
+                }
+                grid[t.r][t.c] = 0;
+                towers.splice(i, 1);
+            }
+            for (let i = researchBuildings.length - 1; i >= 0; i--) {
+                const b = researchBuildings[i];
+                if (b.r >= halfH) continue;
+                scene.remove(b.mesh);
+                grid[b.r][b.c] = 0;
+                researchBuildings.splice(i, 1);
+                const body = b.mesh.children[0], dome = b.mesh.children[1];
+                [body, dome].forEach(m => { const idx = researchClickables.indexOf(m); if (idx > -1) researchClickables.splice(idx, 1); });
+            }
+            OPPONENT_RESEARCH.hp = 0; OPPONENT_RESEARCH.speed = 0; OPPONENT_RESEARCH.dmg = 0;
+            Object.keys(OPPONENT_RESEARCHED).forEach(k => delete OPPONENT_RESEARCHED[k]);
+            const u = state.upgrades || {};
+            if (u.troop) { ['hp', 'speed', 'count'].forEach(k => { if (u.troop[k] !== undefined) AI_UPGRADES[k].level = u.troop[k]; }); }
+            if (u.tower) { ['dmg', 'range', 'fireRate'].forEach(k => { if (u.tower[k] !== undefined) AI_TOWER_UPGRADES[k].level = u.tower[k]; }); }
+            (state.research_done || []).forEach(id => {
+                const rT = RESEARCH_TROOPS.find(x => x.id === id);
+                if (rT && !OPPONENT_RESEARCHED[id]) { OPPONENT_RESEARCHED[id] = true; OPPONENT_RESEARCH.hp += rT.bonusHp || 0; OPPONENT_RESEARCH.speed += rT.bonusSpeed || 0; OPPONENT_RESEARCH.dmg += rT.bonusDmg || 0; }
+            });
+            (state.towers || []).forEach(({ r, c }) => { const rM = 27 - r, cM = c; if (grid[rM] && grid[rM][cM] === 0) buildTower(rM, cM, 'ai'); });
+            (state.research || []).forEach(({ r, c }) => { const rM = 27 - r, cM = c; if (grid[rM] && grid[rM][cM] === 0) buildResearch(rM, cM); });
+            if (state.wave !== undefined && state.wave > STATE.wave) { STATE.wave = state.wave; STATE.waveActive = !!state.waveActive; }
+            logAction('Opponent state synced.', '#66ff66');
+            updateUI();
+        }
         function applyOpponentAction(action) {
             const a = action.action || action;
             if (a.from_player === STATE.playerIdx || STATE.playerIdx < 0) return;
@@ -408,8 +644,9 @@
                         STATE.pvpReady = true;
                         logAction('Match Started! PvP.', '#ffffff');
                     } else if (msg.event === 'action') applyOpponentAction(msg);
+                    else if (msg.event === 'state_sync') applyPvPState(msg);
                     else if (msg.event === 'opponent_left') logAction('Opponent disconnected.', '#ff6600');
-                    else if (msg.event === 'opponent_reconnected') logAction('Opponent reconnected.', '#66ff66');
+                    else if (msg.event === 'opponent_reconnected' || msg.event === 'opponent_joined') { if (msg.event === 'opponent_reconnected') logAction('Opponent reconnected.', '#66ff66'); sendPvPState(); }
                     else if (msg.event === 'error') logAction(msg.msg || 'Error', '#ff0000');
                 } catch (err) {}
             };
@@ -705,6 +942,8 @@
         // --- Logging System ---
         function logAction(message, colorHex) {
             const logContainer = document.getElementById('action-log');
+            const maxEntries = window.innerWidth <= 768 ? 2 : 5;
+            while (logContainer.children.length >= maxEntries) logContainer.removeChild(logContainer.firstChild);
             const entry = document.createElement('div');
             entry.className = 'log-entry';
             entry.style.borderColor = colorHex;
@@ -740,6 +979,8 @@
             STATE.buildMode = mode;
             const cost = mode === 'research' ? CONFIG.researchCost : CONFIG.towerCost;
             logAction(`Build mode: ${mode === 'research' ? 'Research Lab' : 'Tower'} (${cost}💰)`, '#ff66b2');
+            const deselectBtn = document.getElementById('btn-deselect');
+            if (deselectBtn) deselectBtn.classList.add('active');
         }
 
         function buyUpgrade(type, category) {
@@ -766,10 +1007,19 @@
             } else { timerEl.style.display = 'none'; }
             
             const btn = document.getElementById('btn-start-wave');
-            btn.disabled = STATE.waveActive; btn.innerText = STATE.waveActive ? "Troops Deployed..." : "Deploy Now (Skip Timer)";
+            const isNarrow = window.innerWidth <= 768;
+            btn.disabled = STATE.waveActive;
+            btn.innerText = STATE.waveActive ? (isNarrow ? "Deployed" : "Troops Deployed...") : (isNarrow ? "Deploy" : "Deploy Now (Skip Timer)");
 
             const upgradeMenu = document.getElementById('upgrade-menu');
-            STATE.isWaitingForWave && !STATE.isGameOver ? upgradeMenu.classList.add('active') : upgradeMenu.classList.remove('active');
+            const fab = document.getElementById('upgrade-fab');
+            if (STATE.isWaitingForWave && !STATE.isGameOver) {
+                upgradeMenu.classList.add('active');
+                if (fab) fab.classList.add('visible');
+            } else {
+                upgradeMenu.classList.remove('active', 'mobile-open');
+                if (fab) fab.classList.remove('visible');
+            }
 
             ['hp', 'speed', 'count'].forEach(type => {
                 const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_UPGRADES[type];
@@ -790,7 +1040,17 @@
             const upgradeHeader = document.getElementById('upgrade-header');
             let isDragging = false, startX, startY, initialX, initialY;
 
+            const upgradeFab = document.getElementById('upgrade-fab');
+            if (upgradeFab) {
+                upgradeFab.addEventListener('click', () => {
+                    upgradeMenu.classList.toggle('mobile-open');
+                });
+            }
             upgradeHeader.addEventListener('pointerdown', (e) => {
+                if (window.innerWidth <= 768 && upgradeMenu.classList.contains('mobile-open')) {
+                    upgradeMenu.classList.remove('mobile-open');
+                    return;
+                }
                 isDragging = true; startX = e.clientX; startY = e.clientY;
                 initialX = upgradeMenu.offsetLeft; initialY = upgradeMenu.offsetTop; e.stopPropagation();
             });
@@ -801,9 +1061,15 @@
             document.addEventListener('pointerup', () => { isDragging = false; });
 
             const container = document.getElementById('game-container');
-            container.addEventListener('mousemove', (e) => {
+            function setMouseFromEvent(e) {
+                const x = e.clientX != null ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const y = e.clientY != null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                mouse.x = (x / window.innerWidth) * 2 - 1;
+                mouse.y = -(y / window.innerHeight) * 2 + 1;
+            }
+            function handlePointerMove(e) {
                 if (STATE.isGameOver) return;
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                setMouseFromEvent(e);
                 raycaster.setFromCamera(mouse, camera);
                 const allHoverTargets = [...towerHoverMeshes, ...tiles];
                 const intersects = raycaster.intersectObjects(allHoverTargets);
@@ -838,14 +1104,51 @@
                         }
                     } else { rangeCircleMesh.visible = false; }
                 } else { rangeCircleMesh.visible = false; }
+            }
+            container.addEventListener('pointermove', (e) => {
+                if (longPressTimer && mouseDownPos && (Math.abs(e.clientX - mouseDownPos.x) > 10 || Math.abs(e.clientY - mouseDownPos.y) > 10))
+                    clearLongPress();
+                handlePointerMove(e);
             });
+            container.addEventListener('touchmove', handlePointerMove, { passive: true });
 
             let mouseDownPos = {x: 0, y: 0};
-            container.addEventListener('pointerdown', (e) => { mouseDownPos = {x: e.clientX, y: e.clientY}; });
-            container.addEventListener('pointerup', (e) => {
+            let longPressTimer = null;
+            let longPressFired = false;
+            function clearLongPress() {
+                if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+            }
+            function doDeselect() {
+                STATE.buildMode = null;
+                document.getElementById('upgrade-menu').querySelectorAll('[id^="menu-"]').forEach(m => { m.style.display = 'none'; });
+                document.getElementById('menu-main').style.display = 'flex';
+                closeResearchPanel();
+                rangeCircleMesh.visible = false;
+                buildPreviewTower.visible = false;
+                buildPreviewResearch.visible = false;
+                const deselectBtn = document.getElementById('btn-deselect');
+                if (deselectBtn) deselectBtn.classList.remove('active');
+                updateUI();
+            }
+            container.addEventListener('pointerdown', (e) => {
+                mouseDownPos = { x: e.clientX, y: e.clientY };
+                longPressFired = false;
+                clearLongPress();
                 if (e.button === 2) return;
-                if (STATE.isGameOver || Math.sqrt(Math.pow(e.clientX - mouseDownPos.x, 2) + Math.pow(e.clientY - mouseDownPos.y, 2)) > 5) return;
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                if (STATE.buildMode) {
+                    longPressTimer = setTimeout(() => {
+                        longPressTimer = null;
+                        longPressFired = true;
+                        doDeselect();
+                    }, 600);
+                }
+            });
+            container.addEventListener('pointerup', (e) => {
+                clearLongPress();
+                if (e.button === 2) return;
+                if (longPressFired) return;
+                if (STATE.isGameOver || Math.sqrt(Math.pow(e.clientX - mouseDownPos.x, 2) + Math.pow(e.clientY - mouseDownPos.y, 2)) > 8) return;
+                setMouseFromEvent(e);
                 raycaster.setFromCamera(mouse, camera);
                 const allClickables = [...tiles, ...researchClickables];
                 const intersects = raycaster.intersectObjects(allClickables);
@@ -869,15 +1172,10 @@
                 }
             });
 
+            container.addEventListener('pointercancel', clearLongPress);
             container.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                STATE.buildMode = null;
-                document.getElementById('upgrade-menu').querySelectorAll('[id^="menu-"]').forEach(m => { m.style.display = 'none'; });
-                document.getElementById('menu-main').style.display = 'flex';
-                closeResearchPanel();
-                rangeCircleMesh.visible = false;
-                buildPreviewTower.visible = false;
-                buildPreviewResearch.visible = false;
+                doDeselect();
             });
 
             document.getElementById('btn-start-wave').addEventListener('click', () => { if (!STATE.waveActive && !STATE.isGameOver) startNextWave(); });
@@ -886,6 +1184,7 @@
                 STATE.gameSpeed = STATE.gameSpeed >= 3 ? 1 : STATE.gameSpeed + 1;
                 document.getElementById('btn-speed').textContent = '⏩ Speed: ' + STATE.gameSpeed + 'x';
             });
+            document.getElementById('btn-deselect').addEventListener('click', () => { doDeselect(); });
         }
 
         // --- Game Entities ---
@@ -908,7 +1207,7 @@
 
             headGroup.add(headMesh, barrelMesh); group.add(base, headGroup); group.position.copy(pos); scene.add(group);
             
-            const towerRef = { owner, mesh: group, head: headGroup, pos: pos.clone(), baseRange: 4.5, baseDamage: 20, baseFireRate: 0.6, cooldown: 0 };
+            const towerRef = { owner, mesh: group, head: headGroup, pos: pos.clone(), r, c, baseRange: 4.5, baseDamage: 20, baseFireRate: 0.6, cooldown: 0 };
             towers.push(towerRef);
             base.userData = { tower: towerRef };
             towerHoverMeshes.push(base);
