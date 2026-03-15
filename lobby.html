@@ -6,202 +6,112 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>Prism Siege - PvP Lobby</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html {
-            min-height: 100vh;
-            min-height: 100dvh;
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none;
-            background-color: #0b0b12;
-            font-family: 'Rajdhani', sans-serif;
-            color: white;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow-x: hidden; position: relative;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
-        body::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-image:
-                linear-gradient(rgba(255, 102, 178, 0.07) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 102, 178, 0.07) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: -2;
-            transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(3);
-            animation: gridMove 15s linear infinite;
-        }
-        body::after {
-            content: '';
-            position: absolute;
-            width: 600px; height: 600px;
-            background: radial-gradient(circle, rgba(255,0,0,0.15) 0%, rgba(255,102,178,0.05) 40%, transparent 70%);
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: -1; pointer-events: none;
-        }
-        @keyframes gridMove {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 40px; }
-        }
         .lobby-box {
             text-align: center;
-            max-width: 440px;
-            padding: 2.5rem;
-            background: rgba(25, 25, 40, 0.9);
-            border: 1px solid rgba(255, 102, 178, 0.35);
-            border-radius: 20px;
-            box-shadow: 0 0 40px rgba(255, 102, 178, 0.15);
-            z-index: 1;
+            max-width: 480px;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            animation: fadeIn 0.5s ease-out;
         }
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            color: #ff66b2;
-            margin-bottom: 0.5rem;
-            letter-spacing: 3px;
-        }
-        .lobby-sub { color: #b3b3cc; font-size: 0.95rem; margin-bottom: 2rem; }
-        .btn {
-            display: inline-block;
-            background: linear-gradient(135deg, #ff66b2, #ff0000);
-            color: white; border: none;
-            padding: clamp(12px, 2.5vw, 14px) clamp(24px, 4vw, 32px);
-            min-height: 48px;
-            font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 700;
-            border-radius: 50px; cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 0 20px rgba(255, 102, 178, 0.35);
-            text-transform: uppercase; letter-spacing: 2px;
-        }
-        .btn:hover { transform: scale(1.04); box-shadow: 0 0 30px rgba(255, 102, 178, 0.5); }
-        .btn.secondary {
-            background: rgba(40,40,60,0.9);
-            border: 1px solid rgba(255,102,178,0.5);
-            padding: clamp(10px, 2vw, 12px) clamp(18px, 3vw, 24px);
-            min-height: 44px;
-            font-size: clamp(0.85rem, 2vw, 0.95rem);
-        }
-        .btn.secondary:hover { background: rgba(255,102,178,0.2); }
-        .section { margin-bottom: 1.5rem; }
-        .section-title { color: #b3b3cc; font-size: 0.9rem; margin-bottom: 0.6rem; }
+        h1 { margin-bottom: 0.5rem; text-shadow: 0 0 15px var(--primary-glow); }
+        .lobby-sub { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2.5rem; letter-spacing: 1px; }
+        
+        .section { margin-bottom: 2rem; position: relative; }
+        .section-title { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
+        
         input[type="text"] {
-            padding: 14px 16px;
-            min-height: 48px;
-            width: 160px;
-            margin-right: 8px;
-            border-radius: 8px;
-            border: 1px solid #ff66b2;
-            background: rgba(0,0,0,0.5);
+            padding: 12px 20px;
+            height: 48px;
+            width: 100%;
+            max-width: 200px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.4);
             color: white;
             font-size: 1.1rem;
             letter-spacing: 2px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+            font-family: var(--font-heading);
         }
-        .row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
-        .status { color: #888; font-size: 0.9rem; margin-top: 1.25rem; }
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px var(--primary-glow), inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+        .status { color: var(--text-muted); font-size: 0.9rem; margin-top: 1.5rem; height: 1.2rem; }
+        
         .waiting-list {
             text-align: left;
-            margin-top: 1.25rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid rgba(255,102,178,0.25);
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--glass-border);
         }
-        .waiting-list h3 { color: #ff66b2; font-size: 1rem; margin-bottom: 0.75rem; letter-spacing: 1px; }
+        .waiting-list h3 { color: var(--primary-color); font-size: 1.1rem; margin-bottom: 1rem; text-align: center; }
+        
         .player-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
-            margin-bottom: 6px;
-            background: rgba(0,0,0,0.35);
-            border-radius: 10px;
-            border: 1px solid rgba(255,102,178,0.2);
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
         }
-        .player-row .name { font-weight: 600; color: #e6e6e6; }
-        .player-row .btn-challenge {
-            padding: 10px 16px;
-            min-height: 44px;
-            font-size: 0.85rem;
-            border-radius: 8px;
+        .player-row:hover {
+            border-color: var(--glass-border);
+            background: rgba(255, 51, 133, 0.05);
         }
-        .waiting-list-empty { color: #666; font-size: 0.9rem; padding: 0.75rem 0; }
+        .player-row .name { font-weight: 600; color: white; display: flex; align-items: center; gap: 8px; }
+        .player-row .name::before {
+            content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00ffcc; box-shadow: 0 0 8px #00ffcc;
+        }
+        
+        .waiting-list-empty { color: #666; font-size: 0.9rem; padding: 1rem 0; text-align: center; font-style: italic; }
+        
         .back-link {
             position: absolute;
-            top: max(12px, env(safe-area-inset-top));
-            left: max(12px, env(safe-area-inset-left));
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            min-height: 44px;
-            color: #ff66b2;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 0.95rem;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 1px;
-            background: rgba(25, 25, 40, 0.85);
-            border: 1px solid rgba(255, 102, 178, 0.45);
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            transition: all 0.25s ease;
+            top: max(20px, env(safe-area-inset-top));
+            left: max(20px, env(safe-area-inset-left));
+            z-index: 10;
         }
-        .back-link:hover {
-            background: rgba(255, 102, 178, 0.15);
-            border-color: #ff66b2;
-            box-shadow: 0 0 20px rgba(255, 102, 178, 0.3);
-            transform: translateX(-2px);
-        }
-        .back-link:active { transform: translateX(0) scale(0.98); }
-        #main-options { }
+        
         #searching, #waiting { display: none; }
-        #searching p:first-of-type { color: #ffcc00; margin-bottom: 0.5rem; }
-        #waiting .code { font-size: 2rem; font-weight: bold; letter-spacing: 6px; color: #fff; margin: 0.75rem 0; }
-
-        /* Responsive: all screen sizes */
-        .lobby-box {
-            width: 100%;
-            max-width: min(440px, 92vw);
-            padding: clamp(1.25rem, 4vw, 2.5rem);
-            margin: 0 clamp(0.5rem, 2vw, 1rem);
-        }
-        h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
-        .lobby-sub { font-size: clamp(0.85rem, 2vw, 0.95rem); margin-bottom: clamp(1rem, 3vw, 2rem); }
-        .btn { padding: clamp(10px, 2vw, 14px) clamp(20px, 4vw, 32px); font-size: clamp(0.9rem, 2vw, 1rem); }
-        .btn.secondary { padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 24px); font-size: clamp(0.8rem, 1.8vw, 0.9rem); }
-        input[type="text"] {
-            width: 100%;
-            min-width: 0;
-            max-width: 180px;
-            padding: clamp(10px, 2vw, 12px) clamp(12px, 2.5vw, 16px);
-            font-size: clamp(1rem, 2vw, 1.1rem);
-        }
-        .row { justify-content: center; }
-        .player-row { padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 14px); flex-wrap: wrap; gap: 8px; }
-        .player-row .name { font-size: clamp(0.85rem, 2vw, 1rem); min-width: 0; }
-        .player-row .btn-challenge { flex-shrink: 0; }
-        .back-link {
-            padding: clamp(8px, 2vw, 12px) clamp(14px, 3vw, 20px);
-            font-size: clamp(0.8rem, 2vw, 0.95rem);
-        }
-        #waiting .code { font-size: clamp(1.5rem, 4vw, 2rem); letter-spacing: clamp(3px, 1.5vw, 6px); }
+        #searching p:first-of-type { color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+        #waiting .code { font-size: 2.5rem; font-weight: bold; letter-spacing: 8px; color: white; margin: 1rem 0 1.5rem; text-shadow: 0 0 20px var(--primary-glow); font-family: var(--font-heading); }
 
         @media (max-width: 480px) {
-            .row { flex-direction: column; }
-            input[type="text"] { max-width: none; }
-            .player-row { flex-direction: column; align-items: stretch; text-align: center; }
+            .lobby-box { padding: 2rem 1.5rem; margin: 0 1rem; border-radius: 16px; }
+            h1 { font-size: 2rem; }
+            .row { flex-direction: column; width: 100%; }
+            input[type="text"] { max-width: 100%; }
+            .player-row { flex-direction: column; gap: 10px; text-align: center; }
+            .btn-glass { width: 100%; }
+            .back-link { top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); padding: 0.4rem 1rem; font-size: 0.8rem; }
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-link">← Back to menu</a>
-    <div class="lobby-box">
-        <h1>PvP Lobby</h1>
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+    <a href="index.html" class="back-link btn-glass">← Menu</a>
+    
+    <div class="lobby-box glass-panel">
+        <h1 class="text-gradient">PvP Lobby</h1>
         <p class="lobby-sub">Find an opponent or play with a friend</p>
 
         <div id="main-options">
             <div class="section">
-                <button class="btn" id="btn-find-match" style="width: 100%;">Find Match</button>
-                <p class="section-title">Match with a random player</p>
+                <button class="btn-premium" id="btn-find-match" style="width: 100%;">Find Match</button>
+                <p class="section-title" style="margin-top: 10px;">Match with a random player</p>
             </div>
+            
             <div class="waiting-list">
                 <h3>Players seeking game</h3>
                 <div id="waiting-list-container">
@@ -209,27 +119,30 @@
                     <div id="waiting-list-rows"></div>
                 </div>
             </div>
-            <div class="section" style="border-top: 1px solid rgba(255,102,178,0.25); padding-top: 1.25rem;">
+            
+            <div class="section" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                 <p class="section-title">Play with a friend</p>
-                <button class="btn secondary" id="btn-create-room" style="margin-bottom: 0.75rem;">Create Private Room</button>
+                <div class="row" style="margin-bottom: 12px;">
+                    <button class="btn-glass" id="btn-create-room" style="width: 100%;">Create Private Room</button>
+                </div>
                 <div class="row">
                     <input type="text" id="room-code-input" placeholder="Room code" maxlength="8">
-                    <button class="btn secondary" id="btn-join-room">Join</button>
+                    <button class="btn-glass active" id="btn-join-room" style="flex: 1; padding: 12px;">Join</button>
                 </div>
             </div>
         </div>
 
-        <div id="searching">
+        <div id="searching" class="animate-in">
             <p>Searching for opponent...</p>
             <p id="queue-info" class="section-title"></p>
-            <button class="btn secondary" id="btn-cancel-match">Cancel</button>
+            <button class="btn-glass" id="btn-cancel-match" style="margin-top: 1rem;">Cancel</button>
         </div>
 
-        <div id="waiting">
+        <div id="waiting" class="animate-in">
             <p class="section-title">Share this code:</p>
             <p id="room-code-display" class="code"></p>
             <p class="section-title">Waiting for opponent...</p>
-            <button class="btn secondary" id="btn-cancel-waiting">Cancel</button>
+            <button class="btn-glass" id="btn-cancel-waiting" style="margin-top: 1rem;">Cancel</button>
         </div>
 
         <p id="status" class="status"></p>
@@ -322,7 +235,7 @@
                 var row = document.createElement('div');
                 row.className = 'player-row';
                 row.innerHTML = '<span class="name">' + name + '</span>' +
-                    (isSelf ? '<span class="section-title">Waiting...</span>' : '<button type="button" class="btn secondary btn-challenge" data-id="' + (p.id || '') + '">Challenge</button>');
+                    (isSelf ? '<span class="section-title" style="margin-bottom:0;">Waiting...</span>' : '<button type="button" class="btn-glass active btn-challenge" data-id="' + (p.id || '') + '">Challenge</button>');
                 if (!isSelf) {
                     row.querySelector('.btn-challenge').onclick = function() {
                         var targetId = this.getAttribute('data-id');

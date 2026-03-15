@@ -4,18 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3D Tower Defense - Player vs AI</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body, html {
-            margin: 0; padding: 0; overflow: hidden;
-            background-color: #3a3a4a;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            -webkit-touch-callout: none;
-            overscroll-behavior: none;
-        }
-
         #game-container { width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; }
 
         #ui-layer {
@@ -25,61 +15,63 @@
 
         .top-bar {
             display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
-            padding: clamp(6px, 1.5vw, 10px) clamp(10px, 2.5vw, 20px);
-            padding-top: max(clamp(6px, 1.5vw, 10px), env(safe-area-inset-top));
-            padding-left: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-left));
-            padding-right: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-right));
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0));
-            color: white; pointer-events: auto;
+            padding: clamp(10px, 1.5vw, 16px) clamp(16px, 2.5vw, 24px);
+            padding-top: max(clamp(10px, 1.5vw, 16px), env(safe-area-inset-top));
+            padding-left: max(clamp(16px, 2.5vw, 24px), env(safe-area-inset-left));
+            padding-right: max(clamp(16px, 2.5vw, 24px), env(safe-area-inset-right));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            pointer-events: auto;
         }
 
         .side-stats {
-            display: flex; gap: clamp(6px, 1.5vw, 10px);
+            display: flex; gap: clamp(8px, 1.5vw, 12px);
             flex-wrap: wrap; justify-content: center;
             min-width: 0;
         }
 
         .stat-box {
-            background: rgba(30, 30, 45, 0.9); padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 12px); border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.2); font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center;
-            justify-content: center; gap: 4px; min-width: min(100px, 22vw); font-variant-numeric: tabular-nums;
-            text-shadow: 0 0 5px rgba(255,255,255,0.2);
+            padding: clamp(6px, 1vw, 8px) clamp(12px, 1.5vw, 16px);
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            min-width: min(100px, 22vw); font-variant-numeric: tabular-nums;
+            font-size: clamp(0.75rem, 2vw, 0.95rem); font-weight: 700; font-family: var(--font-heading);
+            letter-spacing: 1px;
         }
 
-        .player-color { color: #ff66b2; border-color: rgba(255, 102, 178, 0.4); box-shadow: 0 0 10px rgba(255,102,178,0.2) inset;} 
-        .ai-color { color: #ff0000; border-color: rgba(255, 0, 0, 0.4); box-shadow: 0 0 10px rgba(255,0,0,0.2) inset;} 
-        .neutral-color { color: #fff; }
+        .player-color { color: var(--primary-color); border-color: var(--primary-color); box-shadow: 0 0 15px rgba(255, 51, 133, 0.3) inset;} 
+        .ai-color { color: var(--secondary-color); border-color: var(--secondary-color); box-shadow: 0 0 15px rgba(255, 0, 64, 0.3) inset;} 
+        .neutral-color { color: #fff; border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.3) inset;}
 
         .floating-controls {
             position: absolute;
             bottom: max(100px, env(safe-area-inset-bottom) + 80px);
-            right: max(12px, env(safe-area-inset-right));
+            right: max(16px, env(safe-area-inset-right));
             pointer-events: auto;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             justify-content: flex-end;
             align-items: center;
         }
 
         .upgrade-panel {
             position: absolute;
-            left: max(12px, env(safe-area-inset-left));
-            top: max(60px, env(safe-area-inset-top) + 50px);
-            background: rgba(30, 30, 45, 0.95); padding: clamp(8px, 1.5vw, 10px); border-radius: 8px;
-            border: 1px solid #ff66b2; color: white; display: flex; flex-direction: column;
-            gap: clamp(6px, 1.2vw, 8px); pointer-events: auto; box-shadow: 0 0 15px rgba(255, 102, 178, 0.3);
+            left: max(16px, env(safe-area-inset-left));
+            top: max(80px, env(safe-area-inset-top) + 60px);
+            padding: clamp(12px, 1.5vw, 16px);
+            display: flex; flex-direction: column; gap: clamp(8px, 1.2vw, 10px);
+            pointer-events: auto;
             opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
-            width: min(200px, 52vw); max-width: 200px; z-index: 100;
+            width: min(220px, 52vw); max-width: 220px; z-index: 100;
         }
 
         .upgrade-panel.active { opacity: 1; visibility: visible; }
 
         .upgrade-header {
-            margin: 0; color: #ff66b2; text-align: center; font-size: clamp(0.8rem, 2vw, 0.95rem);
-            border-bottom: 1px solid rgba(255, 102, 178, 0.4); padding-bottom: 6px;
-            text-shadow: 0 0 8px #ff66b2; cursor: grab; font-weight: bold; user-select: none;
+            margin: 0; color: var(--primary-color); text-align: center; font-size: clamp(0.9rem, 2vw, 1.1rem);
+            border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;
+            text-shadow: 0 0 10px var(--primary-glow); cursor: grab; font-weight: bold; user-select: none;
+            font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 4px;
         }
         .upgrade-header:active { cursor: grabbing; }
         
@@ -88,19 +80,19 @@
         /* Action Log */
         #action-log {
             position: absolute;
-            left: max(12px, env(safe-area-inset-left));
-            top: max(200px, 22vh);
+            left: max(16px, env(safe-area-inset-left));
+            top: max(220px, 25vh);
             width: min(250px, 65vw);
             max-width: 250px;
-            display: flex; flex-direction: column; gap: 4px;
+            display: flex; flex-direction: column; gap: 6px;
             pointer-events: none; z-index: 90;
         }
 
         .log-entry {
-            background: rgba(20, 20, 30, 0.85); padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 10px); border-radius: 4px;
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem); font-weight: bold; color: white;
-            text-shadow: 1px 1px 2px black; border-left: 3px solid;
-            animation: slideInFade 5s forwards;
+            background: rgba(20, 20, 30, 0.85); padding: clamp(6px, 1vw, 8px) clamp(10px, 1.5vw, 12px); border-radius: 8px;
+            font-size: clamp(0.7rem, 1.8vw, 0.85rem); font-weight: 600; color: white;
+            border-left: 4px solid; backdrop-filter: blur(4px); box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            animation: slideInFade 5s forwards; font-family: var(--font-body); letter-spacing: 0.5px;
         }
 
         @keyframes slideInFade {
@@ -111,244 +103,97 @@
         }
 
         .bottom-bar {
-            padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2.5vw, 20px);
-            padding-bottom: max(clamp(8px, 1.5vw, 10px), env(safe-area-inset-bottom));
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: clamp(12px, 1.5vw, 16px) clamp(16px, 2.5vw, 24px);
+            padding-bottom: max(clamp(12px, 1.5vw, 16px), env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; align-items: center;
             pointer-events: auto;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
         }
         .bottom-bar .bottom-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            gap: clamp(8px, 2vw, 12px);
-            margin-bottom: 6px;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(12px, 2vw, 16px); margin-bottom: 8px;
         }
         .bottom-bar .instructions { margin-bottom: 0; }
-        .lane-label { color: white; font-size: 0.9rem; margin-right: 6px; font-weight: bold; }
-        .lane-toggles {
-            display: flex;
-            flex-wrap: wrap;
-            gap: clamp(6px, 1.5vw, 10px);
-            align-items: center;
-            justify-content: center;
-        }
+        .lane-label { color: var(--text-muted); font-size: 0.95rem; margin-right: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .lane-toggles { display: flex; flex-wrap: wrap; gap: clamp(8px, 1.5vw, 12px); align-items: center; justify-content: center; }
 
-        .btn {
-            background-color: #ff66b2; color: white; border: none;
-            padding: clamp(12px, 2.5vw, 14px) clamp(20px, 4vw, 28px);
-            min-height: 44px; min-width: 44px;
-            font-size: clamp(0.85rem, 2vw, 1rem); font-weight: bold; border-radius: 8px; cursor: pointer;
-            transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(255, 102, 178, 0.4); margin-top: 6px;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        .btn.secondary {
-            background-color: rgba(40,40,55,0.9); border: 1px solid #ff66b2;
-            padding: clamp(10px, 2vw, 12px) clamp(14px, 2.5vw, 16px);
-            min-height: 44px; font-size: clamp(0.75rem, 1.8vw, 0.85rem); box-shadow: 0 0 8px rgba(255,102,178,0.2); margin-top: 0;
-            color: #eee;
-        }
-
-        .btn.secondary.active {
-            background-color: rgba(255, 102, 178, 0.5);
-            color: white;
-            box-shadow: 0 0 10px rgba(255, 102, 178, 0.5);
-        }
-
-        .btn:hover { background-color: #ff4d94; transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 102, 178, 0.6); }
-        .btn.secondary:hover { background-color: rgba(255,102,178,0.3); }
-        .btn.secondary.active:hover { background-color: rgba(255, 102, 178, 0.7); }
-        .btn:active { transform: scale(0.95); }
-        .btn:disabled { background-color: #555; color: #aaa; border-color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-deploy { font-size: 1.1rem; padding: 14px 28px; }
+        
+        button:disabled { background: #333 !important; border-color: #555 !important; color: #888 !important; box-shadow: none !important; cursor: not-allowed; transform: none !important; }
 
         .instructions {
-            color: rgba(255, 255, 255, 0.75);
-            font-size: clamp(0.6rem, 1.6vw, 0.78rem);
-            text-align: center;
-            margin-bottom: 4px;
-            font-weight: 500;
-            padding: 0 6px;
-            line-height: 1.2;
+            color: var(--text-muted); font-size: clamp(0.7rem, 1.6vw, 0.85rem); text-align: center;
+            margin-bottom: 4px; font-weight: 600; padding: 0 8px; line-height: 1.4; letter-spacing: 0.5px;
         }
 
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+            color: white; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
         }
         .overlay.active { opacity: 1; pointer-events: auto; }
-        .overlay h1 { font-size: clamp(2rem, 8vw, 4rem); margin-bottom: 10px; text-transform: uppercase; letter-spacing: clamp(2px, 1vw, 4px); padding: 0 12px; text-align: center; }
-        .overlay p { font-size: clamp(0.9rem, 2.5vw, 1.2rem); margin-bottom: 25px; color: #eee; padding: 0 16px; text-align: center; }
+        .overlay h1 { font-size: clamp(3rem, 8vw, 5rem); margin-bottom: 15px; text-transform: uppercase; letter-spacing: clamp(4px, 1vw, 8px); padding: 0 12px; text-align: center; font-family: var(--font-heading); }
+        .overlay p { font-size: clamp(1rem, 2.5vw, 1.4rem); margin-bottom: 30px; color: var(--text-muted); padding: 0 16px; text-align: center; font-family: var(--font-body); letter-spacing: 1px; }
 
-        /* Mobile: compact layout */
         .upgrade-fab {
-            display: none;
-            pointer-events: none;
-            position: absolute;
-            bottom: max(72px, env(safe-area-inset-bottom) + 56px);
-            left: max(10px, env(safe-area-inset-left));
-            width: 48px; height: 48px;
-            border-radius: 50%;
-            background: rgba(255, 102, 178, 0.95);
-            border: 2px solid rgba(255,255,255,0.4);
-            color: white; font-size: 1.25rem;
-            cursor: pointer; pointer-events: auto;
-            z-index: 99;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            align-items: center; justify-content: center;
-            transition: transform 0.2s, box-shadow 0.2s;
+            display: none; pointer-events: none; position: absolute;
+            bottom: max(80px, env(safe-area-inset-bottom) + 60px); left: max(16px, env(safe-area-inset-left));
+            width: 54px; height: 54px; border-radius: 50%;
+            background: var(--primary-color); border: 2px solid rgba(255,255,255,0.2);
+            color: white; font-size: 1.4rem; cursor: pointer; pointer-events: auto; z-index: 99;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+        .upgrade-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--primary-glow); }
         .upgrade-fab:active { transform: scale(0.95); }
 
-        .deselect-btn {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 0.2s, visibility 0.2s;
-        }
-        .deselect-btn.active {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-        }
+        .deselect-btn { opacity: 0; visibility: hidden; pointer-events: none; transition: all 0.3s ease; }
+        .deselect-btn.active { opacity: 1; visibility: visible; pointer-events: auto; }
 
         @media (max-width: 768px) {
-            .top-bar {
-                flex-direction: row;
-                flex-wrap: nowrap;
-                gap: 4px;
-                padding: 6px 8px;
-                padding-top: max(6px, env(safe-area-inset-top));
-            }
-            .top-bar .side-stats {
-                gap: 4px;
-                flex: 0 0 auto;
-            }
-            .stat-box {
-                padding: 4px 6px;
-                font-size: 0.7rem;
-                min-width: 0;
-                flex: 0 1 auto;
-            }
-            .stat-box.neutral-color {
-                flex: 1 1 auto;
-                min-width: 0;
-                font-size: 0.7rem;
-            }
-            #timer-container { margin-left: 4px; }
-            #timer-container, #ui-timer { font-size: 0.7rem !important; }
+            .hide-mobile { display: none; }
+            .top-bar { flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 6px 8px; padding-top: max(6px, env(safe-area-inset-top)); justify-content: space-between; }
+            .top-bar .side-stats { gap: 4px; flex: 0 1 auto; }
+            .stat-box { padding: 4px 6px; font-size: 0.75rem; min-width: 0; letter-spacing: 0; gap: 4px; }
+            .stat-box.neutral-color { flex: 1 1 100%; order: -1; min-width: 100%; margin-bottom: 2px; }
+            #timer-container { margin-left: 6px; }
+            #timer-container, #ui-timer { font-size: 0.75rem !important; }
             #fps-display { display: none; }
-            /* Upgrade: hide default panel position, use fab + bottom sheet */
+            
             .upgrade-fab.visible { display: flex; pointer-events: auto; }
-            #upgrade-menu.upgrade-panel {
-                left: 0; top: auto; right: 0; bottom: 0;
-                width: 100%; max-width: none;
-                max-height: 0;
-                border-radius: 16px 16px 0 0;
-                padding: 0 12px 12px;
-                padding-bottom: max(12px, env(safe-area-inset-bottom));
-                transition: max-height 0.3s ease, opacity 0.3s ease;
-                overflow: hidden;
+            .upgrade-fab {
+                top: max(65px, env(safe-area-inset-top) + 65px);
+                bottom: auto; left: max(8px, env(safe-area-inset-left));
+                width: 44px; height: 44px; font-size: 1.2rem;
             }
-            #upgrade-menu.upgrade-panel.active.mobile-open {
-                max-height: 55vh;
-                overflow-y: auto;
-            }
-            #upgrade-menu.upgrade-panel.active:not(.mobile-open) {
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none;
-            }
-            #upgrade-menu .upgrade-header {
-                padding: 10px 0 6px;
-                font-size: 0.9rem;
-            }
-            #upgrade-menu .btn.secondary {
-                padding: 10px 12px;
-                font-size: 0.8rem;
-                min-height: 40px;
-            }
-            #action-log {
-                left: 8px;
-                right: auto;
-                top: auto;
-                bottom: max(130px, env(safe-area-inset-bottom) + 110px);
-                width: min(200px, 55vw);
-                max-height: 72px;
-                overflow: hidden;
-                gap: 2px;
-            }
-            .log-entry {
-                padding: 3px 6px;
-                font-size: 0.65rem;
-            }
-            .bottom-bar {
-                padding: 8px 10px;
-                padding-bottom: max(8px, env(safe-area-inset-bottom));
-                gap: 4px;
-            }
-            .bottom-bar .bottom-row {
-                margin-bottom: 0;
-                gap: 8px;
-                flex-wrap: nowrap;
-            }
-            .lane-toggles {
-                margin-bottom: 0;
-                gap: 6px;
-                flex: 0 0 auto;
-            }
-            .lane-label { font-size: 0.7rem; margin-right: 4px; }
-            .lane-toggles .btn.secondary {
-                padding: 8px 10px;
-                min-height: 34px;
-                font-size: 0.7rem;
-            }
-            .bottom-bar .btn-deploy {
-                flex: 1;
-                min-width: 100px;
-                padding: 10px 12px;
-                font-size: 0.85rem;
-                min-height: 40px;
-            }
-            .instructions {
-                font-size: 0.58rem;
-                padding: 0 4px;
-            }
-            /* Move Speed/Camera to top-right on mobile so they don't overlap the bottom bar */
-            .floating-controls {
-                top: max(44px, env(safe-area-inset-top) + 38px);
-                bottom: auto;
-                right: max(8px, env(safe-area-inset-right));
-                left: auto;
-                gap: 6px;
-            }
-            .floating-controls .btn.secondary {
-                padding: 6px 8px;
-                min-height: 34px;
-                min-width: 34px;
-                font-size: 0.65rem;
-            }
-            .floating-controls #btn-speed { font-size: 0.65rem; }
-            .floating-controls #btn-reset-view { font-size: 0.6rem; white-space: nowrap; }
-            .deselect-btn.active { min-width: 60px; }
-            #research-panel {
-                width: min(280px, 92vw) !important;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                max-height: 80vh;
-                overflow-y: auto;
-            }
-        }
 
-        @media (max-width: 600px) {
-            .top-bar .stat-box.neutral-color { flex: 1 1 100%; order: -1; }
-            #timer-container { display: block; margin-left: 0; margin-top: 2px; }
+            #upgrade-menu.upgrade-panel {
+                left: 0; top: auto; right: 0; bottom: 0; width: 100%; max-width: none; max-height: 0;
+                border-radius: 20px 20px 0 0; padding: 0 16px 16px; padding-bottom: max(16px, env(safe-area-inset-bottom));
+                transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; overflow: hidden;
+            }
+            #upgrade-menu.upgrade-panel.active.mobile-open { max-height: 60vh; overflow-y: auto; }
+            #upgrade-menu.upgrade-panel.active:not(.mobile-open) { opacity: 0; visibility: hidden; pointer-events: none; }
+            #upgrade-menu .upgrade-header { padding: 14px 0 10px; font-size: 1rem; }
+            
+            #action-log {
+                left: max(8px, env(safe-area-inset-left)); right: auto; top: auto; bottom: max(130px, env(safe-area-inset-bottom) + 110px);
+                width: min(220px, 65vw); max-height: 80px; overflow: hidden; gap: 4px;
+            }
+            .log-entry { padding: 4px 8px; font-size: 0.7rem; }
+            
+            .bottom-bar { padding: 8px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); gap: 6px; }
+            .bottom-bar .bottom-row { margin-bottom: 0; gap: 8px; flex-wrap: nowrap; width: 100%; justify-content: center; }
+            .lane-toggles { margin-bottom: 0; gap: 4px; flex: 0 0 auto; }
+            .lane-label { font-size: 0.75rem; margin-right: 2px; display: none; }
+            .lane-toggles .btn-glass { padding: 6px 8px; min-width: 32px; min-height: 36px; padding: 0; }
+            .bottom-bar .btn-deploy { flex: 1; min-width: 100px; padding: 10px 8px; font-size: 0.85rem; min-height: 40px; }
+            .instructions { font-size: 0.65rem; padding: 0 4px; line-height: 1.2; }
+            
+            .floating-controls { top: max(65px, env(safe-area-inset-top) + 65px); bottom: auto; right: max(8px, env(safe-area-inset-right)); left: auto; gap: 6px; flex-direction: column; align-items: flex-end; }
+            .floating-controls .btn-glass { padding: 6px 8px; min-height: 34px; font-size: 0.7rem; }
+            #research-panel { width: min(300px, 92vw) !important; left: 50%; transform: translate(-50%, -50%); max-height: 85vh; overflow-y: auto; }
         }
     </style>
 </head>
@@ -360,96 +205,96 @@
         <div id="fps-display" style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.85rem; font-variant-numeric: tabular-nums; pointer-events: none;">FPS: 60</div>
         <div class="top-bar">
             <div class="side-stats">
-                <div class="stat-box ai-color"><span id="label-opponent">AI Base</span>: <span id="ui-ai-lives">10</span> ❤️</div>
-                <div class="stat-box ai-color"><span id="label-opponent-money">AI</span> 💰: <span id="ui-ai-money">150</span></div>
+                <div class="stat-box ai-color glass-panel" title="AI Base"><span class="hide-mobile" id="label-opponent">AI Base</span><span class="hide-mobile">:</span> <span id="ui-ai-lives">10</span> ❤️</div>
+                <div class="stat-box ai-color glass-panel" title="AI Money"><span class="hide-mobile" id="label-opponent-money">AI</span> 💰<span class="hide-mobile">:</span> <span id="ui-ai-money">150</span></div>
             </div>
             
-            <div class="stat-box neutral-color wave-box" style="border-color: #ffd700; width: 200px; box-shadow: 0 0 10px rgba(255,215,0,0.3) inset;">
-                🌊 <span id="ui-wave">1</span>
-                <span id="timer-container" style="margin-left: 10px; font-weight: normal; font-size: 0.85rem;">
-                    | <span id="ui-timer" style="color: #ffcc00; font-weight: bold;">30</span>s
+            <div class="stat-box neutral-color wave-box glass-panel" style="width: 200px;">
+                🌊<span class="hide-mobile"> Wave </span><span id="ui-wave">1</span>
+                <span id="timer-container" style="color: var(--text-muted);">
+                    | <span id="ui-timer" style="color: var(--primary-color);">30</span>s
                 </span>
             </div>
 
             <div class="side-stats" style="flex-direction: row-reverse;">
-                <div class="stat-box player-color">Your Base: <span id="ui-lives">10</span> ❤️</div>
-                <div class="stat-box player-color">Your 💰: <span id="ui-money">150</span></div>
+                <div class="stat-box player-color glass-panel" title="Player Base"><span class="hide-mobile">Your Base:</span> <span id="ui-lives">10</span> ❤️</div>
+                <div class="stat-box player-color glass-panel" title="Player Money"><span class="hide-mobile">Your</span> 💰<span class="hide-mobile">:</span> <span id="ui-money">150</span></div>
             </div>
         </div>
         
         <button type="button" id="upgrade-fab" class="upgrade-fab" aria-label="Upgrades" title="Upgrades">☰</button>
-        <div id="upgrade-menu" class="upgrade-panel">
+        <div id="upgrade-menu" class="upgrade-panel glass-panel">
             <div id="upgrade-header" class="upgrade-header">☰ Upgrade Hub</div>
             
             <div id="menu-main" class="menu-view">
-                <button class="btn secondary" onclick="switchMenu('troops')">Troop Offense ⚔️</button>
-                <button class="btn secondary" onclick="switchMenu('towers')">Tower Defense 🛡️</button>
-                <button class="btn secondary" onclick="switchMenu('buildings')">Buildings 🏗️</button>
+                <button class="btn-glass" onclick="switchMenu('troops')">Troop Offense ⚔️</button>
+                <button class="btn-glass" onclick="switchMenu('towers')">Tower Defense 🛡️</button>
+                <button class="btn-glass" onclick="switchMenu('buildings')">Buildings 🏗️</button>
             </div>
 
             <div id="menu-troops" class="menu-view" style="display: none;">
-                <button id="btn-upg-hp" class="btn secondary" onclick="buyUpgrade('hp', 'troop')"></button>
-                <button id="btn-upg-speed" class="btn secondary" onclick="buyUpgrade('speed', 'troop')"></button>
-                <button id="btn-upg-count" class="btn secondary" onclick="buyUpgrade('count', 'troop')"></button>
-                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+                <button id="btn-upg-hp" class="btn-glass" onclick="buyUpgrade('hp', 'troop')"></button>
+                <button id="btn-upg-speed" class="btn-glass" onclick="buyUpgrade('speed', 'troop')"></button>
+                <button id="btn-upg-count" class="btn-glass" onclick="buyUpgrade('count', 'troop')"></button>
+                <button class="btn-glass" style="background: rgba(255,255,255,0.1);" onclick="switchMenu('main')">🔙 Back</button>
             </div>
 
             <div id="menu-towers" class="menu-view" style="display: none;">
-                <button id="btn-upg-dmg" class="btn secondary" onclick="buyUpgrade('dmg', 'tower')"></button>
-                <button id="btn-upg-range" class="btn secondary" onclick="buyUpgrade('range', 'tower')"></button>
-                <button id="btn-upg-fireRate" class="btn secondary" onclick="buyUpgrade('fireRate', 'tower')"></button>
-                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+                <button id="btn-upg-dmg" class="btn-glass" onclick="buyUpgrade('dmg', 'tower')"></button>
+                <button id="btn-upg-range" class="btn-glass" onclick="buyUpgrade('range', 'tower')"></button>
+                <button id="btn-upg-fireRate" class="btn-glass" onclick="buyUpgrade('fireRate', 'tower')"></button>
+                <button class="btn-glass" style="background: rgba(255,255,255,0.1);" onclick="switchMenu('main')">🔙 Back</button>
             </div>
 
             <div id="menu-buildings" class="menu-view" style="display: none;">
-                <button class="btn secondary" onclick="setBuildMode('research')">Research Lab 🔬 (100💰)</button>
-                <button class="btn secondary" onclick="setBuildMode('tower')">Tower (50💰)</button>
-                <button class="btn secondary" style="background: #555;" onclick="switchMenu('main')">🔙 Back</button>
+                <button class="btn-glass" onclick="setBuildMode('research')">Research Lab 🔬 (100💰)</button>
+                <button class="btn-glass" onclick="setBuildMode('tower')">Tower (50💰)</button>
+                <button class="btn-glass" style="background: rgba(255,255,255,0.1);" onclick="switchMenu('main')">🔙 Back</button>
             </div>
         </div>
 
-        <div id="research-panel" class="upgrade-panel" style="left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s;">
-            <div class="upgrade-header" style="cursor: default;">🔬 Research Lab</div>
-            <div class="menu-view">
-                <button id="research-troop1" class="btn secondary" onclick="buyResearch('heavy')">Heavy Armor (+80 HP) — 75💰</button>
-                <button id="research-troop2" class="btn secondary" onclick="buyResearch('swift')">Swift Strike (+0.4 Speed) — 75💰</button>
-                <button id="research-troop3" class="btn secondary" onclick="buyResearch('berserker')">Berserker (+15 Dmg) — 75💰</button>
-                <button class="btn secondary" style="background: #555;" onclick="closeResearchPanel()">Close</button>
+        <div id="research-panel" class="upgrade-panel glass-panel" style="left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s; width: 320px; max-width: 90vw; border-color: #00cccc;">
+            <div class="upgrade-header" style="cursor: default; color: #00cccc;">🔬 Research Lab</div>
+            <div class="menu-view" style="gap: 12px; margin-top: 10px;">
+                <button id="research-troop1" class="btn-glass" onclick="buyResearch('heavy')">Heavy Armor (+80 HP) — 75💰</button>
+                <button id="research-troop2" class="btn-glass" onclick="buyResearch('swift')">Swift Strike (+0.4 Speed) — 75💰</button>
+                <button id="research-troop3" class="btn-glass" onclick="buyResearch('berserker')">Berserker (+15 Dmg) — 75💰</button>
+                <button class="btn-glass" style="background: rgba(255,255,255,0.1);" onclick="closeResearchPanel()">Close</button>
             </div>
         </div>
 
         <div id="action-log"></div>
 
         <div class="floating-controls">
-            <button type="button" id="btn-deselect" class="btn secondary deselect-btn" title="Cancel build (or long-press on board)">✕ Deselect</button>
-            <button id="btn-speed" class="btn secondary">⏩ Speed: 1x</button>
-            <button id="btn-reset-view" class="btn secondary">🎥 Center Camera</button>
+            <button type="button" id="btn-deselect" class="btn-glass deselect-btn" title="Cancel build (or long-press on board)">✕ Deselect</button>
+            <button id="btn-speed" class="btn-glass">⏩ Speed: 1x</button>
+            <button id="btn-reset-view" class="btn-glass">🎥 Center Camera</button>
         </div>
 
         <div class="bottom-bar">
             <div class="bottom-row">
                 <div class="lane-toggles">
                     <span class="lane-label">Lanes:</span>
-                    <button id="lane-btn-0" class="btn secondary active" onclick="toggleLane(0)">L</button>
-                    <button id="lane-btn-1" class="btn secondary active" onclick="toggleLane(1)">M</button>
-                    <button id="lane-btn-2" class="btn secondary active" onclick="toggleLane(2)">R</button>
+                    <button id="lane-btn-0" class="btn-glass active" onclick="toggleLane(0)">L</button>
+                    <button id="lane-btn-1" class="btn-glass active" onclick="toggleLane(1)">M</button>
+                    <button id="lane-btn-2" class="btn-glass active" onclick="toggleLane(2)">R</button>
                 </div>
-                <button id="btn-start-wave" class="btn btn-deploy">Deploy Now (Skip Timer)</button>
+                <button id="btn-start-wave" class="btn-premium btn-deploy">Deploy Now</button>
             </div>
-            <div class="instructions">Tap green zone to build. Long-press or ✕ to cancel.</div>
+            <div class="instructions text-glow">Tap green zone to build. Long-press or ✕ to cancel.</div>
         </div>
     </div>
 
     <div id="game-over" class="overlay">
-        <h1 class="ai-color" style="text-shadow: 0 0 20px #ff0000;">DEFEAT</h1>
+        <h1 class="ai-color text-glow">DEFEAT</h1>
         <p id="defeat-msg">The Red forces destroyed your base.</p>
-        <button class="btn" onclick="location.reload()">Restart Game</button>
+        <button class="btn-premium" onclick="location.reload()">Restart Game</button>
     </div>
 
     <div id="victory" class="overlay">
-        <h1 class="player-color" style="text-shadow: 0 0 20px #ff66b2;">VICTORY</h1>
+        <h1 class="player-color text-glow">VICTORY</h1>
         <p id="victory-msg">You destroyed the opponent's base!</p>
-        <button class="btn" onclick="location.reload()">Play Again</button>
+        <button class="btn-premium" onclick="location.reload()">Play Again</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -630,11 +475,47 @@
                 if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
                 if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
                 startNextWave(true, a.wave);
-            } else if (type === 'sync_state') {
-                if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
-                if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
-                if (a.wave !== undefined && a.wave > STATE.wave) STATE.wave = a.wave;
+            } else if (type === 'world_sync') {
+                if (a.lives !== undefined) STATE.lives = a.lives;
+                if (a.money !== undefined) STATE.money = a.money;
+                if (a.aiLives !== undefined) STATE.aiLives = a.aiLives;
+                if (a.aiMoney !== undefined) STATE.aiMoney = a.aiMoney;
+                if (a.wave !== undefined) STATE.wave = a.wave;
+                if (a.waveCountdown !== undefined) STATE.waveCountdown = a.waveCountdown;
+                if (a.waveActive !== undefined) STATE.waveActive = a.waveActive;
+                
+                if (a.enemies) {
+                    const incIds = a.enemies.map(e => e.id);
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        if (!incIds.includes(enemies[i].id)) {
+                            if (enemies[i].hp <= 0) createExplosion(enemies[i].pos, enemies[i].owner === 'player' ? 0xff0000 : 0xff66b2);
+                            removeEnemy(enemies[i]);
+                        }
+                    }
+                    for (let inc of a.enemies) {
+                        let localE = enemies.find(e => e.id === inc.id);
+                        if (localE) {
+                            localE.pos.x = inc.x; localE.pos.z = inc.z;
+                            localE.hp = inc.hp; localE.state = inc.state;
+                            const hpPercent = Math.max(0, localE.hp / localE.maxHp);
+                            localE.hpFg.scale.x = hpPercent;
+                            localE.hpFg.position.x = -0.4 * (1 - hpPercent);
+                        } else {
+                            spawnTroop(inc.hp, 2.0, inc.owner, 0, 0); // dummy spawn
+                            const newE = enemies[enemies.length - 1];
+                            newE.id = inc.id; newE.maxHp = inc.maxHp;
+                            newE.pos.x = inc.x; newE.pos.z = inc.z; newE.state = inc.state;
+                        }
+                    }
+                }
                 updateUI();
+            } else if (type === 'spawn_troop' && typeof a.lane === 'number' && a.lane >= 0 && a.lane <= 2) {
+                if (STATE.aiToSpawn <= 0) return;
+                const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
+                const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + OPPONENT_RESEARCH.speed;
+                const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + OPPONENT_RESEARCH.hp;
+                spawnTroop(aiHp, aiSpeed, 'ai', a.lane, OPPONENT_RESEARCH.dmg);
+                STATE.aiToSpawn--;
             }
         }
 
@@ -1303,6 +1184,7 @@
             const baseDamage = 10 + (STATE.wave * 5) + (bonusDmg || 0);
 
             enemies.push({ 
+                id: Date.now() + "_" + Math.floor(Math.random() * 1000000),
                 owner: owner, container: container, mesh: mesh, hp: hp, maxHp: hp, speed: speed, 
                 wps: wps, waypointIndex: 1, pos: container.position, isFlashing: 0,
                 hpFg: hpFg, hpGroup: hpGroup,
@@ -1429,11 +1311,12 @@
             let dt = Math.min(clock.getDelta(), 0.1);
             dt *= STATE.gameSpeed;
 
-            if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx >= 0) {
+            if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
                 const t = performance.now() / 1000;
-                if (t - lastPvPSyncTime >= 2.5) {
+                if (t - lastPvPSyncTime >= 0.1) { // Send sync 10 times a second
                     lastPvPSyncTime = t;
-                    sendPvPAction({ type: 'sync_state', lives: STATE.lives, money: STATE.money, wave: STATE.wave });
+                    const enemiesPayload = enemies.map(e => ({ id: e.id, hp: e.hp, maxHp: e.maxHp, x: e.pos.x, z: e.pos.z, state: e.state, owner: e.owner }));
+                    sendPvPAction({ type: 'world_sync', lives: STATE.lives, money: STATE.money, wave: STATE.wave, aiLives: STATE.aiLives, aiMoney: STATE.aiMoney, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, enemies: enemiesPayload });
                 }
             }
 
@@ -1449,11 +1332,14 @@
             }
 
             if (STATE.isWaitingForWave && (MULTIPLAYER ? STATE.pvpReady : true)) {
-                STATE.waveCountdown -= dt;
+                if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                    STATE.waveCountdown -= dt;
+                    if (STATE.waveCountdown <= 0) startNextWave();
+                }
+
                 let currentSec = Math.ceil(STATE.waveCountdown);
                 if (currentSec !== lastTimerSec) { lastTimerSec = currentSec; updateUI(); }
-                if (STATE.waveCountdown <= 0) startNextWave();
-
+                
                 STATE.aiDecisionTimer -= dt;
                 if (STATE.aiDecisionTimer <= 0 && !MULTIPLAYER) {
                     processAIDecisions();
@@ -1469,34 +1355,37 @@
             const aiScale = Math.max(0, STATE.aiLives / CONFIG.startLives); aiBaseHpFg.scale.x = aiScale; aiBaseHpFg.position.x = -1.75 * (1 - aiScale);
 
             // Spawning Logic
-            if (STATE.waveActive && (STATE.aiToSpawn > 0 || STATE.playerToSpawn > 0)) {
-                STATE.spawnTimer -= dt;
-                if (STATE.spawnTimer <= 0) {
-                    const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
-                    
-                    if (STATE.aiToSpawn > 0) {
-                        const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + (MULTIPLAYER ? OPPONENT_RESEARCH.speed : 0);
-                        const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + (MULTIPLAYER ? OPPONENT_RESEARCH.hp : 0);
-                        const aiLane = Math.floor(Math.random() * 3);
-                        spawnTroop(aiHp, aiSpeed, 'ai', aiLane, MULTIPLAYER ? OPPONENT_RESEARCH.dmg : 0);
-                        STATE.aiToSpawn--;
+            if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                if (STATE.waveActive && (STATE.aiToSpawn > 0 || STATE.playerToSpawn > 0)) {
+                    STATE.spawnTimer -= dt;
+                    if (STATE.spawnTimer <= 0) {
+                        const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
+                        
+                        if (STATE.aiToSpawn > 0 && !MULTIPLAYER) {
+                            const aiSpeed = baseSpeed + 0.25 + (AI_UPGRADES.speed.level * AI_UPGRADES.speed.bonus) + OPPONENT_RESEARCH.speed;
+                            const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + OPPONENT_RESEARCH.hp;
+                            const aiLane = Math.floor(Math.random() * 3);
+                            spawnTroop(aiHp, aiSpeed, 'ai', aiLane, OPPONENT_RESEARCH.dmg);
+                            STATE.aiToSpawn--;
+                        }
+                        
+                        if (STATE.playerToSpawn > 0) {
+                            const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
+                            const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
+                            const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
+                            spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
+                            if (MULTIPLAYER) sendPvPAction({ type: 'spawn_troop', lane: pLane });
+                            STATE.playerToSpawn--;
+                            STATE.spawnIndex++;
+                        }
+                        STATE.spawnTimer = 0.9; 
                     }
-                    
-                    if (STATE.playerToSpawn > 0) {
-                        const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
-                        const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
-                        const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
-                        spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg); 
-                        STATE.playerToSpawn--;
-                        STATE.spawnIndex++;
-                    }
-                    STATE.spawnTimer = 0.9; 
+                } else if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
+                    STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
+                    STATE.money += 50 + (STATE.wave * 15);
+                    STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
+                    updateUI();
                 }
-            } else if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
-                STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
-                STATE.money += 50 + (STATE.wave * 15);
-                STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
-                updateUI();
             }
 
             // --- Troop Movement, Combat FSM, and Flocking (Separation) ---
@@ -1534,24 +1423,28 @@
                             enemy.mesh.scale.setScalar(1.0 + Math.sin(enemy.animTimer) * 0.15); 
 
                             if (enemy.attackCooldown <= 0) {
-                                enemy.attackTarget.hp -= enemy.damage;
-                                enemy.attackTarget.isFlashing = 0.1;
-                                
-                                const hpPercent = Math.max(0, enemy.attackTarget.hp / enemy.attackTarget.maxHp);
-                                enemy.attackTarget.hpFg.scale.x = hpPercent;
-                                enemy.attackTarget.hpFg.position.x = -0.4 * (1 - hpPercent);
-
-                                if (enemy.attackTarget.hp <= 0) {
-                                    if (enemy.owner === 'player') STATE.money += 15; 
-                                    if (enemy.owner === 'ai') STATE.aiMoney += 15;
-                                    createExplosion(enemy.attackTarget.pos, enemy.owner === 'player' ? 0xff0000 : 0xff66b2);
-                                    removeEnemy(enemy.attackTarget);
-                                    updateUI();
-                                    
-                                    enemy.state = 'MOVING';
-                                    enemy.attackTarget = null;
-                                    enemy.mesh.scale.setScalar(1.0);
+                                if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                                    enemy.attackTarget.hp -= enemy.damage;
+                                    if (enemy.attackTarget.hp <= 0) {
+                                        if (enemy.owner === 'player') STATE.money += 15; 
+                                        if (enemy.owner === 'ai') STATE.aiMoney += 15;
+                                        createExplosion(enemy.attackTarget.pos, enemy.owner === 'player' ? 0xff0000 : 0xff66b2);
+                                        removeEnemy(enemy.attackTarget);
+                                        updateUI();
+                                        
+                                        enemy.state = 'MOVING';
+                                        enemy.attackTarget = null;
+                                        enemy.mesh.scale.setScalar(1.0);
+                                    }
                                 }
+                                
+                                if (enemy.attackTarget) {
+                                    enemy.attackTarget.isFlashing = 0.1;
+                                    const hpPercent = Math.max(0, enemy.attackTarget.hp / enemy.attackTarget.maxHp);
+                                    enemy.attackTarget.hpFg.scale.x = hpPercent;
+                                    enemy.attackTarget.hpFg.position.x = -0.4 * (1 - hpPercent);
+                                }
+                                
                                 enemy.attackCooldown = enemy.attackRate;
                             }
                         }
@@ -1587,8 +1480,10 @@
                         if (distToWp < enemy.speed * dt) {
                             enemy.pos.x = targetWp.x; enemy.pos.z = targetWp.z; enemy.waypointIndex++;
                             if (enemy.waypointIndex >= enemy.wps.length) {
-                                if (enemy.owner === 'ai') STATE.lives--; if (enemy.owner === 'player') STATE.aiLives--;
-                                removeEnemy(enemy); updateUI(); checkGameOver();
+                                if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                                    if (enemy.owner === 'ai') STATE.lives--; if (enemy.owner === 'player') STATE.aiLives--;
+                                    removeEnemy(enemy); updateUI(); checkGameOver();
+                                }
                                 continue; 
                             }
                         } else {
@@ -1644,7 +1539,14 @@
                 if (closestEnemy) {
                     const targetPos = closestEnemy.pos.clone(); targetPos.y = tower.head.position.y + tower.mesh.position.y;
                     tower.head.lookAt(targetPos);
-                    if (tower.cooldown <= 0) { shoot(tower, closestEnemy, effDmg); tower.cooldown = effFireRate; }
+                    if (tower.cooldown <= 0) { 
+                        if (!MULTIPLAYER || STATE.playerIdx === 0) {
+                            shoot(tower, closestEnemy, effDmg); 
+                        } else {
+                            shoot(tower, closestEnemy, 0); // Guest applies 0 damage, purely visual
+                        }
+                        tower.cooldown = effFireRate; 
+                    }
                 }
             }
 
@@ -1659,14 +1561,16 @@
                 const dir = new THREE.Vector3().subVectors(targetCenter, proj.mesh.position); const dist = dir.length();
 
                 if (dist < proj.speed * dt) {
-                    proj.target.hp -= proj.damage;
+                    if (!MULTIPLAYER || STATE.playerIdx === 0 || proj.damage === 0) {
+                        proj.target.hp -= proj.damage;
+                    }
                     proj.target.isFlashing = 0.1;
 
                     const hpPercent = Math.max(0, proj.target.hp / proj.target.maxHp);
                     proj.target.hpFg.scale.x = hpPercent;
                     proj.target.hpFg.position.x = -0.4 * (1 - hpPercent);
 
-                    if (proj.target.hp <= 0) {
+                    if (proj.target.hp <= 0 && (!MULTIPLAYER || STATE.playerIdx === 0)) {
                         if (proj.owner === 'player') STATE.money += 15;
                         if (proj.owner === 'ai') STATE.aiMoney += 18;
                         createExplosion(proj.target.pos, proj.owner === 'player' ? 0xff0000 : 0xff66b2);
