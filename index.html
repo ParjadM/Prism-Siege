@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Prism Siege - 3D Tower Defense</title>
     <!-- Import Sci-Fi Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -14,9 +15,15 @@
             padding: 0; 
         }
 
+        html {
+            overflow: hidden;
+            height: 100%;
+        }
         body, html {
             min-height: 100vh;
             min-height: 100dvh;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
             background-color: #0b0b12;
             font-family: 'Rajdhani', sans-serif;
             color: white;
@@ -24,7 +31,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            overflow-x: hidden;
+            overflow: hidden;
             position: relative;
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
@@ -75,7 +82,7 @@
 
         h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 5rem; 
+            font-size: clamp(2rem, 12vw, 5rem);
             font-weight: 900;
             margin: 0 0 0.5rem;
             background: linear-gradient(135deg, #ff66b2, #ff0000);
@@ -89,8 +96,8 @@
 
         .subtitle { 
             color: #b3b3cc; 
-            font-size: 1.5rem; 
-            margin-bottom: 3.5rem; 
+            font-size: clamp(1rem, 4vw, 1.5rem); 
+            margin-bottom: clamp(2rem, 6vw, 3.5rem); 
             letter-spacing: 2px;
             font-weight: 500;
         }
@@ -101,7 +108,8 @@
             background: linear-gradient(135deg, #ff66b2, #ff0000);
             color: white; 
             text-decoration: none;
-            padding: 18px 56px; 
+            padding: clamp(14px, 3vw, 18px) clamp(28px, 6vw, 56px);
+            min-height: 48px;
             font-family: 'Orbitron', sans-serif;
             font-size: 1.4rem; 
             font-weight: 700;
@@ -220,7 +228,7 @@
 
         /* Settings button */
         .btn-settings {
-            position: fixed; top: 24px; right: 24px;
+            position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
             width: 48px; height: 48px;
             background: rgba(30, 30, 45, 0.6);
             border: 1px solid rgba(255, 102, 178, 0.4);

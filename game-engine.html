@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3D Tower Defense - Player vs AI</title>
     <style>
         body, html {
@@ -10,9 +10,13 @@
             background-color: #3a3a4a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            overscroll-behavior: none;
         }
 
-        #game-container { width: 100vw; height: 100vh; height: 100dvh; display: block; }
+        #game-container { width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; }
 
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -115,16 +119,17 @@
 
         .btn {
             background-color: #ff66b2; color: white; border: none;
-            padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 25px);
-            font-size: clamp(0.85rem, 2vw, 1rem); font-weight: bold; border-radius: 6px; cursor: pointer;
+            padding: clamp(12px, 2.5vw, 14px) clamp(20px, 4vw, 28px);
+            min-height: 44px; min-width: 44px;
+            font-size: clamp(0.85rem, 2vw, 1rem); font-weight: bold; border-radius: 8px; cursor: pointer;
             transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(255, 102, 178, 0.4); margin-top: 6px;
             text-transform: uppercase; letter-spacing: 1px;
         }
 
         .btn.secondary {
             background-color: rgba(40,40,55,0.9); border: 1px solid #ff66b2;
-            padding: clamp(5px, 1vw, 6px) clamp(10px, 2vw, 12px);
-            font-size: clamp(0.7rem, 1.8vw, 0.8rem); box-shadow: 0 0 8px rgba(255,102,178,0.2); margin-top: 0;
+            padding: clamp(10px, 2vw, 12px) clamp(14px, 2.5vw, 16px);
+            min-height: 44px; font-size: clamp(0.75rem, 1.8vw, 0.85rem); box-shadow: 0 0 8px rgba(255,102,178,0.2); margin-top: 0;
             color: #eee;
         }
 
@@ -162,6 +167,7 @@
             .top-bar .stat-box.neutral-color { width: 100% !important; order: -1; }
             #timer-container { display: block; margin-left: 0; margin-top: 2px; }
             #research-panel { width: min(280px, 90vw) !important; left: 50%; transform: translate(-50%, -50%); }
+            .upgrade-panel { width: min(220px, 85vw) !important; max-width: 220px; }
         }
     </style>
 </head>
@@ -419,6 +425,7 @@
             clock = new THREE.Clock();
             animate();
             if (MULTIPLAYER) {
+                document.getElementById('btn-speed').style.display = 'none';
                 document.getElementById('label-opponent').textContent = 'Opponent Base';
                 document.getElementById('label-opponent-money').textContent = 'Opponent';
                 document.getElementById('victory-msg').textContent = "You destroyed the opponent's base!";
