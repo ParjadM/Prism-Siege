@@ -890,43 +890,49 @@
             }
         }
 
+        let uiUpdatePending = false;
         function updateUI() {
-            document.getElementById('ui-money').innerText = STATE.money;
-            document.getElementById('ui-lives').innerText = Math.max(0, STATE.lives);
-            document.getElementById('ui-ai-money').innerText = STATE.aiMoney;
-            document.getElementById('ui-ai-lives').innerText = Math.max(0, STATE.aiLives);
-            document.getElementById('ui-wave').innerText = STATE.wave === 0 ? 1 : STATE.wave;
+            if (uiUpdatePending) return;
+            uiUpdatePending = true;
+            Promise.resolve().then(() => {
+                uiUpdatePending = false;
+                document.getElementById('ui-money').innerText = STATE.money;
+                document.getElementById('ui-lives').innerText = Math.max(0, STATE.lives);
+                document.getElementById('ui-ai-money').innerText = STATE.aiMoney;
+                document.getElementById('ui-ai-lives').innerText = Math.max(0, STATE.aiLives);
+                document.getElementById('ui-wave').innerText = STATE.wave === 0 ? 1 : STATE.wave;
 
-            const timerEl = document.getElementById('timer-container');
-            if (STATE.isWaitingForWave && !STATE.isGameOver) {
-                timerEl.style.display = 'inline'; document.getElementById('ui-timer').innerText = Math.ceil(STATE.waveCountdown);
-            } else { timerEl.style.display = 'none'; }
-            
-            const btn = document.getElementById('btn-start-wave');
-            const isNarrow = window.innerWidth <= 768;
-            btn.disabled = STATE.waveActive;
-            btn.innerText = STATE.waveActive ? (isNarrow ? "Deployed" : "Troops Deployed...") : (isNarrow ? "Deploy" : "Deploy Now (Skip Timer)");
+                const timerEl = document.getElementById('timer-container');
+                if (STATE.isWaitingForWave && !STATE.isGameOver) {
+                    timerEl.style.display = 'inline'; document.getElementById('ui-timer').innerText = Math.ceil(STATE.waveCountdown);
+                } else { timerEl.style.display = 'none'; }
+                
+                const btn = document.getElementById('btn-start-wave');
+                const isNarrow = window.innerWidth <= 768;
+                btn.disabled = STATE.waveActive;
+                btn.innerText = STATE.waveActive ? (isNarrow ? "Deployed" : "Troops Deployed...") : (isNarrow ? "Deploy" : "Deploy Now (Skip Timer)");
 
-            const upgradeMenu = document.getElementById('upgrade-menu');
-            const fab = document.getElementById('upgrade-fab');
-            if (STATE.isWaitingForWave && !STATE.isGameOver) {
-                upgradeMenu.classList.add('active');
-                if (fab) fab.classList.add('visible');
-            } else {
-                upgradeMenu.classList.remove('active', 'mobile-open');
-                if (fab) fab.classList.remove('visible');
-            }
+                const upgradeMenu = document.getElementById('upgrade-menu');
+                const fab = document.getElementById('upgrade-fab');
+                if (STATE.isWaitingForWave && !STATE.isGameOver) {
+                    upgradeMenu.classList.add('active');
+                    if (fab) fab.classList.add('visible');
+                } else {
+                    upgradeMenu.classList.remove('active', 'mobile-open');
+                    if (fab) fab.classList.remove('visible');
+                }
 
-            ['hp', 'speed', 'count'].forEach(type => {
-                const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_UPGRADES[type];
-                btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
-                btnEl.disabled = STATE.money < upg.cost;
-            });
+                ['hp', 'speed', 'count'].forEach(type => {
+                    const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_UPGRADES[type];
+                    btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
+                    btnEl.disabled = STATE.money < upg.cost;
+                });
 
-            ['dmg', 'range', 'fireRate'].forEach(type => {
-                const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_TOWER_UPGRADES[type];
-                btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
-                btnEl.disabled = STATE.money < upg.cost;
+                ['dmg', 'range', 'fireRate'].forEach(type => {
+                    const btnEl = document.getElementById(`btn-upg-${type}`), upg = PLAYER_TOWER_UPGRADES[type];
+                    btnEl.innerText = `+${upg.name} (Lvl ${upg.level}) - ${upg.cost}💰`;
+                    btnEl.disabled = STATE.money < upg.cost;
+                });
             });
         }
 
@@ -1317,7 +1323,11 @@
                 if (el) el.textContent = 'FPS: ' + fpsValue;
             }
             if (STATE.isGameOver) return;
-            let dt = Math.min(clock.getDelta(), 0.1);
+            
+            let rawDt = clock.getDelta();
+            if (rawDt > 0.1) rawDt = 0.1;
+            window.smoothedDt = (window.smoothedDt || rawDt) * 0.9 + rawDt * 0.1;
+            let dt = window.smoothedDt;
             dt *= STATE.gameSpeed;
 
             if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
