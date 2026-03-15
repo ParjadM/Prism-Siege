@@ -476,10 +476,10 @@
                 if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
                 startNextWave(true, a.wave);
             } else if (type === 'world_sync') {
-                if (a.lives !== undefined) STATE.lives = a.lives;
-                if (a.money !== undefined) STATE.money = a.money;
-                if (a.aiLives !== undefined) STATE.aiLives = a.aiLives;
-                if (a.aiMoney !== undefined) STATE.aiMoney = a.aiMoney;
+                if (a.lives !== undefined) STATE.aiLives = a.lives;
+                if (a.money !== undefined) STATE.aiMoney = a.money;
+                if (a.aiLives !== undefined) STATE.lives = a.aiLives;
+                if (a.aiMoney !== undefined) STATE.money = a.aiMoney;
                 if (a.wave !== undefined) STATE.wave = a.wave;
                 if (a.waveCountdown !== undefined) STATE.waveCountdown = a.waveCountdown;
                 if (a.waveActive !== undefined) STATE.waveActive = a.waveActive;
@@ -494,23 +494,26 @@
                     }
                     for (let inc of a.enemies) {
                         let localE = enemies.find(e => e.id === inc.id);
+                        let translatedOwner = inc.owner === 'player' ? 'ai' : 'player';
+                        let transZ = -inc.z;
                         if (localE) {
-                            localE.pos.x = inc.x; localE.pos.z = inc.z;
+                            localE.pos.x = inc.x; localE.pos.z = transZ;
                             localE.hp = inc.hp; localE.state = inc.state;
                             const hpPercent = Math.max(0, localE.hp / localE.maxHp);
                             localE.hpFg.scale.x = hpPercent;
                             localE.hpFg.position.x = -0.4 * (1 - hpPercent);
                         } else {
-                            spawnTroop(inc.hp, 2.0, inc.owner, 0, 0); // dummy spawn
+                            spawnTroop(inc.hp, 2.0, translatedOwner, inc.lane !== undefined ? inc.lane : 1, 0); // dummy spawn
                             const newE = enemies[enemies.length - 1];
                             newE.id = inc.id; newE.maxHp = inc.maxHp;
-                            newE.pos.x = inc.x; newE.pos.z = inc.z; newE.state = inc.state;
+                            newE.pos.x = inc.x; newE.pos.z = transZ; newE.state = inc.state;
                             newE.mesh.position.copy(newE.pos);
                             newE.container.position.copy(newE.pos);
                         }
                     }
                 }
                 updateUI();
+                checkGameOver();
             } else if (type === 'spawn_troop' && typeof a.lane === 'number' && a.lane >= 0 && a.lane <= 2) {
                 if (STATE.aiToSpawn <= 0) return;
                 const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
@@ -1317,7 +1320,7 @@
                 const t = performance.now() / 1000;
                 if (t - lastPvPSyncTime >= 0.1) { // Send sync 10 times a second
                     lastPvPSyncTime = t;
-                    const enemiesPayload = enemies.map(e => ({ id: e.id, hp: e.hp, maxHp: e.maxHp, x: e.pos.x, z: e.pos.z, state: e.state, owner: e.owner }));
+                    const enemiesPayload = enemies.map(e => ({ id: e.id, hp: e.hp, maxHp: e.maxHp, x: e.pos.x, z: e.pos.z, state: e.state, owner: e.owner, lane: e.lane }));
                     sendPvPAction({ type: 'world_sync', lives: STATE.lives, money: STATE.money, wave: STATE.wave, aiLives: STATE.aiLives, aiMoney: STATE.aiMoney, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, enemies: enemiesPayload });
                 }
             }
