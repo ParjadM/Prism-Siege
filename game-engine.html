@@ -586,51 +586,6 @@
                 if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
                 if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
                 startNextWave(true, a.wave);
-            } else if (type === 'world_sync') {
-                if (a.lives !== undefined) STATE.aiLives = a.lives;
-                if (a.money !== undefined) STATE.aiMoney = a.money;
-                if (a.aiLives !== undefined) STATE.lives = a.aiLives;
-                if (a.aiMoney !== undefined) STATE.money = a.aiMoney;
-                if (a.wave !== undefined) STATE.wave = a.wave;
-                if (a.waveCountdown !== undefined) STATE.waveCountdown = a.waveCountdown;
-                if (a.waveActive !== undefined) STATE.waveActive = a.waveActive;
-                if (a.isWaitingForWave !== undefined) STATE.isWaitingForWave = a.isWaitingForWave;
-                
-                if (a.enemies) {
-                    const incIds = a.enemies.map(e => e.id);
-                    for (let i = enemies.length - 1; i >= 0; i--) {
-                        if (!incIds.includes(enemies[i].id)) {
-                            if (enemies[i].hp <= 0) createExplosion(enemies[i].pos, enemies[i].owner === 'player' ? 'ai' : 'player');
-                            removeEnemy(enemies[i]);
-                        }
-                    }
-                    for (let inc of a.enemies) {
-                        let localE = enemies.find(e => e.id === inc.id);
-                        let translatedOwner = inc.owner === 'player' ? 'ai' : 'player';
-                        let transZ = -inc.z;
-                        if (!localE) {
-                            const incSpeed = inc.speed !== undefined ? inc.speed : 4.0;
-                            spawnTroop(inc.maxHp, incSpeed, translatedOwner, inc.lane !== undefined ? inc.lane : 1, 0); // dummy spawn
-                            localE = enemies[enemies.length - 1];
-                            localE.id = inc.id; localE.maxHp = inc.maxHp;
-                            localE.pos.x = inc.x; localE.pos.z = transZ; localE.state = inc.state;
-                        } else {
-                            if (inc.speed !== undefined) localE.speed = inc.speed;
-                            if (inc.wpi !== undefined) localE.waypointIndex = inc.wpi;
-                            localE.hp = inc.hp; localE.state = inc.state;
-                            const hpPercent = Math.max(0, localE.hp / localE.maxHp);
-                            localE.hpFg.scale.x = hpPercent;
-                            localE.hpFg.position.x = -0.4 * (1 - hpPercent);
-                            
-                            // Native Speed Integration! Instead of snapping identically every tick,
-                            // we do a 80/20 mathematical smooth blend to gracefully slide the mesh if they naturally slightly drift.
-                            localE.pos.x = localE.pos.x * 0.8 + inc.x * 0.2;
-                            localE.pos.z = localE.pos.z * 0.8 + transZ * 0.2;
-                        }
-                    }
-                }
-                updateUI();
-                checkGameOver();
             } else if (type === 'spawn_troop' && typeof a.lane === 'number' && a.lane >= 0 && a.lane <= 2) {
                 if (STATE.aiToSpawn <= 0) return;
                 const baseHp = 30 + (STATE.wave * 25), baseSpeed = 1.8 + (STATE.wave * 0.1);
@@ -1432,16 +1387,12 @@
 
         // --- Game Logic ---
         function startNextWave(fromOpponent, syncWaveNumber) {
-            if (MULTIPLAYER) {
-                if (STATE.playerIdx === 0) { // Host handles official wave start
-                    STATE.wave++;
-                    sendPvPAction({ type: 'start_wave', wave: STATE.wave, lives: STATE.lives, money: STATE.money });
-                } else if (fromOpponent) { // Guest only starts wave if instructed
-                    if (syncWaveNumber != null && syncWaveNumber > STATE.wave) STATE.wave = syncWaveNumber;
-                    else if (syncWaveNumber == null) STATE.wave++;
-                } else {
-                    return; // Prevent guest from starting wave via local timer
-                }
+            if (MULTIPLAYER && !fromOpponent) {
+                STATE.wave++;
+                sendPvPAction({ type: 'start_wave', wave: STATE.wave, lives: STATE.lives, money: STATE.money });
+            } else if (MULTIPLAYER && fromOpponent) {
+                if (syncWaveNumber != null && syncWaveNumber > STATE.wave) STATE.wave = syncWaveNumber;
+                else if (syncWaveNumber == null) STATE.wave++;
             } else {
                 STATE.wave++;
             }
@@ -1530,15 +1481,11 @@
             if (Math.abs(rawDt - 0.0166) < 0.005) rawDt = 0.01666; // Force exactly 60hz physics if we are close to VSync
             let dt = rawDt * STATE.gameSpeed;
 
-            if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
+            if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx >= 0) {
                 const t = performance.now() / 1000;
-                if (t - lastPvPSyncTime >= 0.2) { // Send sync 5 times a second
+                if (t - lastPvPSyncTime >= 2.5) {
                     lastPvPSyncTime = t;
-                    // Defer this heavy serialization to a microtask so it doesn't stall the current rendering frame's delta-time!
-                    Promise.resolve().then(() => {
-                        const enemiesPayload = enemies.map(e => ({ id: e.id, hp: e.hp, maxHp: e.maxHp, x: e.pos.x, z: e.pos.z, state: e.state, owner: e.owner, lane: e.lane, speed: e.speed, wpi: e.waypointIndex }));
-                        sendPvPAction({ type: 'world_sync', lives: STATE.lives, money: STATE.money, wave: STATE.wave, aiLives: STATE.aiLives, aiMoney: STATE.aiMoney, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, isWaitingForWave: STATE.isWaitingForWave, enemies: enemiesPayload });
-                    });
+                    sendPvPAction({ type: 'sync_state', lives: STATE.lives, money: STATE.money, wave: STATE.wave });
                 }
             }
 
@@ -1564,10 +1511,8 @@
             }
 
             if (STATE.isWaitingForWave && (MULTIPLAYER ? STATE.pvpReady : true)) {
-                if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                    STATE.waveCountdown -= dt;
-                    if (STATE.waveCountdown <= 0) startNextWave();
-                }
+                STATE.waveCountdown -= dt;
+                if (STATE.waveCountdown <= 0) startNextWave();
 
                 let currentSec = Math.ceil(STATE.waveCountdown);
                 if (currentSec !== lastTimerSec) { lastTimerSec = currentSec; updateUI(); }
@@ -1637,11 +1582,8 @@
                         const pSpeed = baseSpeed + (PLAYER_UPGRADES.speed.level * PLAYER_UPGRADES.speed.bonus) + STATE.researchBonusSpeed;
                         const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
                         const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
-                        if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                            spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
-                        } else {
-                            sendPvPAction({ type: 'spawn_troop', lane: pLane });
-                        }
+                        spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
+                        if (MULTIPLAYER) sendPvPAction({ type: 'spawn_troop', lane: pLane });
                         STATE.playerToSpawn--;
                         STATE.spawnIndex++;
                     }
@@ -1650,10 +1592,8 @@
             }
             if (STATE.waveActive && STATE.aiToSpawn === 0 && STATE.playerToSpawn === 0 && enemies.length === 0) {
                 STATE.waveActive = false; STATE.isWaitingForWave = true; STATE.waveCountdown = 30; 
-                if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                    STATE.money += 50 + (STATE.wave * 15);
-                    STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
-                }
+                STATE.money += 50 + (STATE.wave * 15);
+                STATE.aiMoney += Math.round((60 + (STATE.wave * 18)) * DIFF_MOD.waveMoneyMult);
                 updateUI();
             }
 
@@ -1692,23 +1632,18 @@
                             enemy.mesh.scale.setScalar(1.0 + Math.sin(enemy.animTimer) * 0.15); 
 
                             if (enemy.attackCooldown <= 0) {
-                                if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                                    enemy.attackTarget.hp -= enemy.damage;
-                                    spawnDamageNumber(enemy.attackTarget.pos, enemy.damage, enemy.owner === 'player' ? 0xffffff : 0xff3333);
-                                    if (enemy.attackTarget.hp <= 0) {
-                                        // The attacker earns the money, not the victim!
-                                        if (enemy.owner === 'player') STATE.money += 15; 
-                                        if (enemy.owner === 'ai') STATE.aiMoney += 15;
-                                        createExplosion(enemy.attackTarget.pos, enemy.owner); // color based on who caused explosion
-                                        removeEnemy(enemy.attackTarget);
-                                        updateUI();
-                                        
-                                        enemy.state = 'MOVING';
-                                        enemy.attackTarget = null;
-                                        enemy.mesh.scale.setScalar(1.0);
-                                    }
+                                enemy.attackTarget.hp -= enemy.damage;
+                                spawnDamageNumber(enemy.attackTarget.pos, enemy.damage, enemy.owner === 'player' ? 0xffffff : 0xff3333);
+                                if (enemy.attackTarget.hp <= 0) {
+                                    if (enemy.owner === 'player') STATE.money += 15; 
+                                    if (enemy.owner === 'ai') STATE.aiMoney += 15;
+                                    createExplosion(enemy.attackTarget.pos, enemy.owner);
+                                    removeEnemy(enemy.attackTarget);
+                                    updateUI();
+                                    enemy.state = 'MOVING';
+                                    enemy.attackTarget = null;
+                                    enemy.mesh.scale.setScalar(1.0);
                                 }
-                                
                                 if (enemy.attackTarget) {
                                     enemy.attackTarget.isFlashing = 0.1;
                                     const hpPercent = Math.max(0, enemy.attackTarget.hp / enemy.attackTarget.maxHp);
@@ -1750,10 +1685,8 @@
                         if (distToWp < enemy.speed * dt) {
                             enemy.pos.x = targetWp.x; enemy.pos.z = targetWp.z; enemy.waypointIndex++;
                             if (enemy.waypointIndex >= enemy.wps.length) {
-                                if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                                    if (enemy.owner === 'ai') STATE.lives--; if (enemy.owner === 'player') STATE.aiLives--;
-                                    removeEnemy(enemy); updateUI(); checkGameOver();
-                                }
+                                if (enemy.owner === 'ai') STATE.lives--; if (enemy.owner === 'player') STATE.aiLives--;
+                                removeEnemy(enemy); updateUI(); checkGameOver();
                                 continue; 
                             }
                         } else {
@@ -1810,11 +1743,7 @@
                     const targetPos = closestEnemy.pos.clone(); targetPos.y = tower.head.position.y + tower.mesh.position.y;
                     tower.head.lookAt(targetPos);
                     if (tower.cooldown <= 0) { 
-                        if (!MULTIPLAYER || STATE.playerIdx === 0) {
-                            shoot(tower, closestEnemy, effDmg, effDmg); 
-                        } else {
-                            shoot(tower, closestEnemy, 0, effDmg); // Guest applies 0 damage natively, purely visual
-                        }
+                        shoot(tower, closestEnemy, effDmg, effDmg); 
                         tower.cooldown = effFireRate; 
                     }
                 }
@@ -1831,9 +1760,7 @@
                 const dir = new THREE.Vector3().subVectors(targetCenter, proj.mesh.position); const dist = dir.length();
 
                 if (dist < proj.speed * dt) {
-                    if (!MULTIPLAYER || STATE.playerIdx === 0 || proj.damage === 0) {
-                        proj.target.hp -= proj.damage;
-                    }
+                    proj.target.hp -= proj.damage;
                     if (proj.aestheticDamage > 0) {
                         spawnDamageNumber(proj.target.pos, proj.aestheticDamage, proj.owner === 'player' ? 0xffffff : 0xff3333);
                     }
@@ -1843,7 +1770,7 @@
                     proj.target.hpFg.scale.x = hpPercent;
                     proj.target.hpFg.position.x = -0.4 * (1 - hpPercent);
 
-                    if (proj.target.hp <= 0 && (!MULTIPLAYER || STATE.playerIdx === 0)) {
+                    if (proj.target.hp <= 0) {
                         if (proj.owner === 'player') STATE.money += 15;
                         if (proj.owner === 'ai') STATE.aiMoney += 18;
                         createExplosion(proj.target.pos, proj.owner === 'player' ? 0xff0000 : 0xff66b2);
