@@ -593,6 +593,19 @@
                 const aiHp = baseHp + 20 + (AI_UPGRADES.hp.level * AI_UPGRADES.hp.bonus) + OPPONENT_RESEARCH.hp;
                 spawnTroop(aiHp, aiSpeed, 'ai', a.lane, OPPONENT_RESEARCH.dmg);
                 STATE.aiToSpawn--;
+                const e = enemies[enemies.length - 1];
+                if (e && a.ts != null) {
+                    const elapsed = Math.min(1.2, Math.max(0, (Date.now() - a.ts) / 1000));
+                    advanceEnemyAlongPath(e, elapsed * aiSpeed);
+                }
+            } else if (type === 'sync_state') {
+                if (a.lives !== undefined) STATE.aiLives = Math.max(0, a.lives);
+                if (a.money !== undefined) STATE.aiMoney = Math.max(0, a.money);
+                if (a.wave !== undefined && a.wave > STATE.wave) STATE.wave = a.wave;
+                if (a.waveCountdown !== undefined) STATE.waveCountdown = Math.max(0, a.waveCountdown);
+                if (a.waveActive !== undefined) STATE.waveActive = a.waveActive;
+                if (a.isWaitingForWave !== undefined) STATE.isWaitingForWave = a.isWaitingForWave;
+                updateUI();
             }
         }
 
@@ -1358,6 +1371,23 @@
             scene.remove(enemy.container); enemy.mesh.geometry.dispose(); enemy.mesh.material.dispose();
             const index = enemies.indexOf(enemy); if (index > -1) enemies.splice(index, 1);
         }
+        function advanceEnemyAlongPath(enemy, distance) {
+            let remaining = Math.max(0, distance);
+            while (remaining > 0.001 && enemy.waypointIndex < enemy.wps.length) {
+                const targetWp = enemy.wps[enemy.waypointIndex];
+                const dx = targetWp.x - enemy.pos.x, dz = targetWp.z - enemy.pos.z;
+                const distToWp = Math.sqrt(dx * dx + dz * dz);
+                if (distToWp < 0.0001) { enemy.waypointIndex++; continue; }
+                if (distToWp <= remaining) {
+                    enemy.pos.x = targetWp.x; enemy.pos.z = targetWp.z;
+                    remaining -= distToWp; enemy.waypointIndex++;
+                } else {
+                    const t = remaining / distToWp;
+                    enemy.pos.x += dx * t; enemy.pos.z += dz * t;
+                    remaining = 0;
+                }
+            }
+        }
 
         const geoLaser = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 4);
         geoLaser.rotateX(Math.PI / 2);
@@ -1483,9 +1513,9 @@
 
             if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx >= 0) {
                 const t = performance.now() / 1000;
-                if (t - lastPvPSyncTime >= 2.5) {
+                if (t - lastPvPSyncTime >= 1.2) {
                     lastPvPSyncTime = t;
-                    sendPvPAction({ type: 'sync_state', lives: STATE.lives, money: STATE.money, wave: STATE.wave });
+                    sendPvPAction({ type: 'sync_state', lives: STATE.lives, money: STATE.money, wave: STATE.wave, waveCountdown: STATE.waveCountdown, waveActive: STATE.waveActive, isWaitingForWave: STATE.isWaitingForWave });
                 }
             }
 
@@ -1583,7 +1613,7 @@
                         const pHp = baseHp + (PLAYER_UPGRADES.hp.level * PLAYER_UPGRADES.hp.bonus) + STATE.researchBonusHp;
                         const pLane = STATE.activeLanes[STATE.spawnIndex % STATE.activeLanes.length];
                         spawnTroop(pHp, pSpeed, 'player', pLane, STATE.researchBonusDmg);
-                        if (MULTIPLAYER) sendPvPAction({ type: 'spawn_troop', lane: pLane });
+                        if (MULTIPLAYER) sendPvPAction({ type: 'spawn_troop', lane: pLane, ts: Date.now() });
                         STATE.playerToSpawn--;
                         STATE.spawnIndex++;
                     }
