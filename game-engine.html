@@ -1202,16 +1202,22 @@
             updateUI(); updateResearchButtons();
         }
 
+        const geoTroop = new THREE.IcosahedronGeometry(0.35, 0);
+        const matTroopPlayer = new THREE.MeshStandardMaterial({ color: 0xff66b2, metalness: 0.2, roughness: 0.1, flatShading: true });
+        const matTroopAI = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.2, roughness: 0.1, flatShading: true });
+        const geoHpBg = new THREE.PlaneGeometry(0.8, 0.12);
+        const matHpBg = new THREE.MeshBasicMaterial({color: 0x000000});
+        const geoHpFg = new THREE.PlaneGeometry(0.8, 0.12);
+        const matHpFg = new THREE.MeshBasicMaterial({color: 0x00ff00});
+
         function spawnTroop(hp, speed, owner, laneIndex, bonusDmg) {
-            const color = owner === 'player' ? 0xff66b2 : 0xff0000;
-            const geo = new THREE.IcosahedronGeometry(0.35, 0);
-            const mat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.1, flatShading: true }); 
-            const mesh = new THREE.Mesh(geo, mat);
+            const mat = owner === 'player' ? matTroopPlayer : matTroopAI;
+            const mesh = new THREE.Mesh(geoTroop, mat);
             mesh.position.y = 0.35; mesh.castShadow = true; mesh.receiveShadow = true;
 
             const hpGroup = new THREE.Group();
-            const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.12), new THREE.MeshBasicMaterial({color: 0x000000}));
-            const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.12), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+            const hpBg = new THREE.Mesh(geoHpBg, matHpBg);
+            const hpFg = new THREE.Mesh(geoHpFg, matHpFg);
             hpFg.position.z = 0.01; hpGroup.add(hpBg, hpFg); hpGroup.position.y = 0.9; 
 
             const container = new THREE.Group();
@@ -1357,9 +1363,10 @@
             }
             if (STATE.isGameOver) return;
             
-            let dt = clock.getDelta();
-            if (dt > 0.05) dt = 0.05; // Cap to 20fps minimum to prevent huge physics jumps
-            dt *= STATE.gameSpeed;
+            let rawDt = clock.getDelta();
+            if (rawDt > 0.05) rawDt = 0.05; // Cap to 20fps minimum to prevent huge physics jumps
+            if (Math.abs(rawDt - 0.0166) < 0.005) rawDt = 0.01666; // Force exactly 60hz physics if we are close to VSync to remove mathematical jitter
+            let dt = rawDt * STATE.gameSpeed;
 
             if (MULTIPLAYER && STATE.ws && STATE.ws.readyState === 1 && STATE.playerIdx === 0) {
                 const t = performance.now() / 1000;
